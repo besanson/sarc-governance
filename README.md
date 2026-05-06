@@ -3,11 +3,14 @@
 A runtime governance layer that wraps any async toolset and enforces declarative
 constraints (hard / soft / escalation) at three in-process points around every tool call.
 
-> **Status:** developer toolkit / reference implementation of the SARC architecture
-> from *"SARC: A Runtime Governance Architecture for Tool-Using Agentic AI Systems"*
-> ([`paper/`](paper/README.md)). Suitable for prototypes, evaluation, and serious POCs;
-> see [docs/production-hardening.md](docs/production-hardening.md) for what's still
-> needed before a production deployment.
+> **Status:** developer toolkit + pre-production foundations on top of the SARC
+> architecture from *"SARC: A Runtime Governance Architecture for Tool-Using
+> Agentic AI Systems"* ([`paper/`](paper/README.md)). Suitable for prototypes,
+> evaluation, serious POCs, and as the runtime spine of a hardened deployment;
+> see [docs/pre-production-checklist.md](docs/pre-production-checklist.md) for
+> what now ships in the library, and
+> [docs/production-hardening.md](docs/production-hardening.md) for what is still
+> the deploying organisation's responsibility.
 
 ## Documentation
 
@@ -15,6 +18,11 @@ constraints (hard / soft / escalation) at three in-process points around every t
 - [Spec authoring](docs/spec-authoring.md) — YAML schema, predicates, common mistakes.
 - [Audit traces](docs/audit-traces.md) — trace shapes, `audit_trace` semantics, CI workflow.
 - [Integrations](docs/integrations.md) — LangGraph-style, OpenAI tool calling, AWS Bedrock action groups, generic async toolsets.
+- [Pre-production checklist](docs/pre-production-checklist.md) — what now ships vs. what you still wire up.
+- [Policy lifecycle](docs/policy-lifecycle.md) — `PolicyMetadata`, checksum, diff, CI gating.
+- [Trace stores](docs/trace-stores.md) — Memory / JSONL / SQLite backends and the hash chain.
+- [Security model](docs/security-model.md) — threat model, what is and isn't protected.
+- [Failure modes](docs/failure-modes.md) — what happens on memory / escalation / spec errors.
 - [Production hardening](docs/production-hardening.md) — persistence, observability, auth, perf, CI/CD.
 
 ## Command-line interface
@@ -24,12 +32,17 @@ sarc-governance validate examples/procurement_agent/sarc_spec.yaml
 sarc-governance list-predicates
 sarc-governance audit  examples/audit_trace_file/spec.yaml \
                   examples/audit_trace_file/trace_pass.json
+sarc-governance policy inspect examples/procurement_agent/sarc_spec.yaml
+sarc-governance policy diff old_spec.yaml new_spec.yaml --exit-code
+sarc-governance trace verify-chain trace.jsonl
+sarc-governance trace export trace.sqlite trace.jsonl
 sarc-governance demo procurement
 ```
 
-`audit` exits non-zero on discrepancies (override with `--allow-discrepancies`),
-making it CI-friendly. See [docs/audit-traces.md](docs/audit-traces.md) for the
-trace schema.
+`audit`, `policy diff --exit-code`, and `trace verify-chain` exit non-zero on
+discrepancies, making them CI-friendly. See
+[docs/audit-traces.md](docs/audit-traces.md) for the trace schema and
+[docs/policy-lifecycle.md](docs/policy-lifecycle.md) for the policy commands.
 
 ---
 
@@ -175,6 +188,40 @@ In each case the agent code is unchanged; only the `ConstraintSpec` differs.
 
 ---
 
+## Pre-production foundations
+
+On top of the core enforcement loop, the library now ships the
+foundations a deploying organisation typically needs before promoting a
+SARC-governed agent to a critical path:
+
+| Piece | Module | What it gives you |
+|---|---|---|
+| `ExecutionContext` | [`context.py`](src/sarc_governance/context.py) | Typed identity bag (principal / agent / tenant / session / roles / environment / request id). Auto-stamped onto every trace record when supplied. |
+| Policy lifecycle | [`policy.py`](src/sarc_governance/policy.py) | `PolicyMetadata`, `policy_checksum`, `inspect_policy`, `diff_policies`. Content fingerprint + structured diff for CI gating. |
+| Trace stores | [`stores/`](src/sarc_governance/stores) | `MemoryTraceStore`, `JSONLTraceStore`, `SQLiteTraceStore` — three durable backends behind a shared `TraceStore` protocol. |
+| Hash chain | [`hashchain.py`](src/sarc_governance/hashchain.py) | SHA-256 chain over canonical JSON of each record. Detects tampering, removal, reordering. *Tamper-evident, not tamper-proof.* |
+| Failure-mode safety | tests in [`tests/test_failure_modes.py`](tests/test_failure_modes.py) | Memory backend / escalation handler exceptions are caught and logged; a failing escalation **never** turns a hard block into a pass. |
+
+Try them end-to-end with the included example:
+
+```bash
+python examples/preproduction_trace_store/run_demo.py
+```
+
+CI gate one-liners:
+
+```bash
+sarc-governance policy inspect config/spec.yaml --json
+sarc-governance policy diff old_spec.yaml new_spec.yaml --exit-code
+sarc-governance trace verify-chain trace.jsonl
+sarc-governance trace export trace.sqlite trace.jsonl
+```
+
+See [docs/pre-production-checklist.md](docs/pre-production-checklist.md)
+for the full status mapping.
+
+---
+
 ## What works today vs. what is not production-hardened
 
 **Works today**
@@ -184,29 +231,34 @@ In each case the agent code is unchanged; only the `ConstraintSpec` differs.
   `ToolsetProtocol`.
 - `EscalationRouter` with a pluggable async handler and a default log-only handler.
 - `TraceRecord` emission with auto-persistence to a `ctx.deps.memory` shape or via
-  user-supplied getters.
+  user-supplied getters; optional auto-stamp of an `ExecutionContext`.
 - YAML / dict spec loading with named-predicate resolution.
 - `audit_trace` for offline conformance checking (coverage / placement / response /
   attribution).
-- Procurement demo, paper benchmarks, and a test suite.
+- `policy_checksum`, `inspect_policy`, `diff_policies` for spec lifecycle gating.
+- `MemoryTraceStore`, `JSONLTraceStore`, `SQLiteTraceStore` with optional
+  tamper-evident SHA-256 hash chain and `verify_chain` CLI.
+- Procurement demo, pre-production demo, paper benchmarks, and a test suite (>180 tests).
 
-**Not production-hardened**
+**Still the deploying organisation's job**
 
-- No persistence of constraint specs or trace records beyond the in-process memory
-  shim used in the demo. Plug in your own `MemoryProtocol` implementation for durable
-  storage.
-- No authentication, authorization, or rate-limiting for escalation routing — the
-  default handler logs only. Real deployments need a queue, ticketing integration, or
-  on-call paging.
-- Predicates are arbitrary Python callables, evaluated in-process with no sandbox.
-  Treat `ConstraintSpec` content as code, not data, when loading from untrusted
-  sources.
-- No metrics/tracing exporters. The `TraceRecord.elapsed` field is captured but not
-  shipped anywhere by default.
-- Concurrency: a single `GovernanceToolset` instance maintains a monotonic action
-  counter under no lock. Fine for a single agent loop; partition by instance if you
-  need parallel actors.
-- No retry, backoff, or idempotency handling around the wrapped toolset call.
+- Multi-writer durable storage at scale — the shipped stores are single-writer
+  (file or single-file SQLite). Bring a real backend if you need multi-process
+  durability.
+- Authentication, authorization, and rate-limiting for escalation routing — the
+  default handler logs only. Real deployments need a queue, ticketing integration,
+  or on-call paging.
+- Predicate sandboxing. Predicates are arbitrary Python callables evaluated
+  in-process. Treat `ConstraintSpec` content as code, not data, when loading from
+  untrusted sources.
+- Metrics / tracing exporters. The library does not depend on OpenTelemetry; an
+  OTel adapter against the trace store protocol is straightforward to write.
+- Concurrency across actors: a single `GovernanceToolset` instance maintains a
+  monotonic action counter under no lock. Fine for a single agent loop; partition
+  by instance if you need parallel actors.
+- Spec approval enforcement. `PolicyMetadata.approval_status` is a string — your
+  CI/CD enforces what `approved` means.
+- Retry / backoff / idempotency around the wrapped toolset call.
 
 ---
 
@@ -214,10 +266,11 @@ In each case the agent code is unchanged; only the `ConstraintSpec` differs.
 
 | Path | Contents |
 |---|---|
-| [`src/sarc_governance/`](src/sarc_governance/) | Core package: constraints, governance, escalation, audit, trace, specs, predicates, CLI |
-| [`docs/`](docs/) | Architecture, spec authoring, audit, integrations, production-hardening guides |
+| [`src/sarc_governance/`](src/sarc_governance/) | Core package: constraints, governance, escalation, audit, trace, specs, predicates, CLI, context, policy, hashchain, stores |
+| [`docs/`](docs/) | Architecture, spec authoring, audit, integrations, pre-production checklist, policy lifecycle, trace stores, security model, failure modes, production-hardening |
 | [`examples/procurement_agent/`](examples/procurement_agent/README.md) | End-to-end demo with a mock ERP toolset and YAML spec |
 | [`examples/audit_trace_file/`](examples/audit_trace_file/README.md) | Spec + pass/fail trace JSON for the `sarc-governance audit` CLI |
+| [`examples/preproduction_trace_store/`](examples/preproduction_trace_store/README.md) | SQLite trace store + hash chain + policy diff demo |
 | [`examples/human_escalation/`](examples/human_escalation/README.md) | approve / deny / timeout pattern for human-in-the-loop |
 | [`examples/langgraph_style_adapter/`](examples/langgraph_style_adapter/README.md) | Wrap a LangGraph-shaped tools node (no `langgraph` dependency) |
 | [`examples/openai_tool_calling_adapter/`](examples/openai_tool_calling_adapter/README.md) | Wrap OpenAI-style function dispatch (no `openai` dependency) |

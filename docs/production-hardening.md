@@ -1,18 +1,21 @@
 # Production hardening
 
-`sarc-governance` is a developer toolkit and reference implementation. Before
-you put it on a production critical path, the following gaps need
-explicit decisions and engineering work. None of these is a SARC research
-question — they are operational concerns common to any policy-enforcement
-layer.
+`sarc-governance` is a developer toolkit moving toward a pre-production
+foundation. Before you put it on a production critical path, the items
+below need explicit decisions and engineering work. None is a SARC
+research question — they are operational concerns common to any
+policy-enforcement layer.
+
+For a quick "what now ships" map, see
+[`pre-production-checklist.md`](pre-production-checklist.md).
 
 ## Persistence
 
 | Concern | What's there | What's needed |
 |---|---|---|
-| Constraint specs | YAML/JSON file loaded at process start. | A versioned spec store with audit trail (git, signed objects in S3, or a policy DB). |
-| Trace records | `MemoryProtocol` interface; only an in-process implementation ships. | Durable backend (relational DB, append-only log, OTel collector). Retention policy. |
-| Action attribution | Captured by callers; not normalized. | Schema for actor/session/agent identity flowing into every record. |
+| Constraint specs | YAML/JSON file loaded at process start; `PolicyMetadata` + `policy_checksum` for content fingerprinting; `policy diff` CLI for review-time deltas. | A versioned spec store with audit trail (git, signed objects in S3, or a policy DB). The library does not sign specs. |
+| Trace records | `MemoryProtocol` interface plus in-process / JSONL / SQLite stores under `sarc_governance.stores`. | Multi-writer durable backend (relational DB, queue, OTel collector). Retention policy. The shipped stores are single-writer. |
+| Action attribution | `ExecutionContext` dataclass auto-stamped onto trace records when supplied (principal / agent / tenant / session / roles / environment / request id). | Wiring from your auth layer to populate it; agreement on canonical role names. |
 
 Provide your own `MemoryProtocol` implementation and pass it via the
 `memory_getter` callback (or via `ctx.deps.memory` if your context object
@@ -44,22 +47,45 @@ The library has no concept of *who* is calling. Real deployments need:
 
 ## Tamper-evident audit logs
 
-`TraceRecord`s today are plain dicts. Production-grade audit needs:
+The library now ships a SHA-256 hash chain over canonical-JSON trace
+records ([hashchain.py](../src/sarc_governance/hashchain.py)). All three
+trace stores support `hash_chain=True` and `verify_chain` detects
+record tampering, removal, or reordering. The CLI exposes
+`sarc-governance trace verify-chain TRACE_FILE`.
 
-- Cryptographic chaining (hash-linked entries) or write-once storage.
-- A canonical serialization so the same event always hashes the same way.
-- Periodic anchoring to an external timestamping authority if regulators
-  ask.
+This is **tamper-evident, not tamper-proof**. An attacker with write
+access to the storage can recompute the chain after editing. To get
+tamper-proofness you still need:
+
+- Write-once / append-only storage (object lock on S3, WORM tape).
+- Periodic anchoring of the chain head to an external timestamping
+  authority if regulators ask.
+- A signed receipt for the chain head at deployment time.
+
+See [`security-model.md`](security-model.md) for the threat model.
 
 ## Policy authoring and approval
 
-`sarc-governance validate` checks structure, not intent. A real lifecycle adds:
+`sarc-governance validate` checks structure, not intent.
+`sarc-governance policy inspect` prints a structured summary plus a
+content-checksum, and `sarc-governance policy diff OLD NEW --exit-code`
+gates pull requests on intentional changes. `PolicyMetadata` carries
+descriptive lifecycle fields (`policy_id`, `version`, `approved_by`,
+`approval_status`).
+
+Still your responsibility:
 
 - Spec PRs with mandatory reviewers (compliance, security).
-- Static analysis: predicate complexity, blast radius if a constraint
-  starts firing on more actions than expected.
-- Staged rollout: shadow → enforce-soft → enforce-hard, with a kill-switch.
-- Reproducibility: the spec version-id is recorded on every `TraceRecord`.
+- Static analysis of predicate complexity / blast radius (the library
+  does not estimate "how many calls will this fire on?").
+- Staged rollout: shadow → enforce-soft → enforce-hard, with a
+  kill-switch.
+- Reproducibility: stamp the `policy_id` + `version` + `checksum` onto
+  every trace record via `ExecutionContext.metadata` or a wrapper around
+  `MemoryProtocol`.
+
+The library treats `approval_status` as informational. Whatever
+"approved" means in your organisation, your CI/CD enforces it.
 
 ## Runtime sandboxing
 
@@ -112,9 +138,12 @@ A minimum gate set:
 
 ```yaml
 - run: sarc-governance validate config/spec.yaml
+- run: sarc-governance policy inspect config/spec.yaml --json
+- run: sarc-governance policy diff base:config/spec.yaml HEAD:config/spec.yaml --exit-code
 - run: pytest
-- run: python scripts/run_smoke.py --dump trace.json
-- run: sarc-governance audit config/spec.yaml trace.json
+- run: python scripts/run_smoke.py --dump trace.jsonl
+- run: sarc-governance trace verify-chain trace.jsonl
+- run: sarc-governance audit config/spec.yaml trace.jsonl
 ```
 
 Beyond that: signed releases, dependency review, image attestation if

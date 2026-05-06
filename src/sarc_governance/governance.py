@@ -47,6 +47,7 @@ from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable, Dict, List, Optional, Protocol, runtime_checkable
 
 from sarc_governance.constraints import ConstraintClass, ConstraintSpec, EnforcementPoint, Response
+from sarc_governance.context import ExecutionContext
 from sarc_governance.escalation import EscalationRouter
 from sarc_governance.trace import TraceRecord, new_action_id
 
@@ -137,6 +138,8 @@ class GovernanceToolset:
     router: EscalationRouter = field(default_factory=EscalationRouter)
     memory_getter: Optional[Callable[[Any], Optional[MemoryProtocol]]] = field(default=None)
     session_id_getter: Optional[Callable[[Any], str]] = field(default=None)
+    context_getter: Optional[Callable[[Any], Optional[ExecutionContext]]] = field(default=None)
+    stamp_context: bool = field(default=True)
     _action_seq: int = field(default=0, repr=False, compare=False)
 
     # ------------------------------------------------------------------
@@ -165,7 +168,10 @@ class GovernanceToolset:
             Framework tool descriptor.  Passed unchanged to the inner toolset.
         """
         action_id = self._next_action_id()
+        execution_context = self._resolve_context(ctx)
         pag_ctx: Dict[str, Any] = {"tool": name, "args": tool_args}
+        if execution_context is not None and not execution_context.is_empty():
+            pag_ctx["execution_context"] = execution_context
 
         # ---- PAG -------------------------------------------------------
         for c in self.spec.at(EnforcementPoint.PAG):
@@ -178,6 +184,7 @@ class GovernanceToolset:
                 klass=c.klass,
                 fired=fired,
                 response=c.response,
+                extra=self._stamp(execution_context),
             )
             await self._emit(ctx, rec)
             if fired:
@@ -199,6 +206,8 @@ class GovernanceToolset:
         elapsed = time.perf_counter() - started
 
         atm_ctx = {"tool": name, "args": tool_args, "result": result, "elapsed": elapsed}
+        if execution_context is not None and not execution_context.is_empty():
+            atm_ctx["execution_context"] = execution_context
         for c in atm_constraints:
             fired = bool(c.predicate(atm_ctx))
             rec = TraceRecord(
@@ -209,7 +218,7 @@ class GovernanceToolset:
                 klass=c.klass,
                 fired=fired,
                 response=c.response,
-                extra={"elapsed": elapsed},
+                extra={"elapsed": elapsed, **self._stamp(execution_context)},
             )
             await self._emit(ctx, rec)
             if fired and c.klass == ConstraintClass.HARD:
@@ -220,6 +229,8 @@ class GovernanceToolset:
 
         # ---- PAA -------------------------------------------------------
         paa_ctx = {"tool": name, "args": tool_args, "result": result}
+        if execution_context is not None and not execution_context.is_empty():
+            paa_ctx["execution_context"] = execution_context
         for c in self.spec.at(EnforcementPoint.PAA):
             fired = bool(c.predicate(paa_ctx))
             rec = TraceRecord(
@@ -230,6 +241,7 @@ class GovernanceToolset:
                 klass=c.klass,
                 fired=fired,
                 response=c.response,
+                extra=self._stamp(execution_context),
             )
             await self._emit(ctx, rec)
             if fired and c.klass == ConstraintClass.ESCALATION:
@@ -251,6 +263,26 @@ class GovernanceToolset:
     def _next_action_id(self) -> str:
         self._action_seq += 1
         return f"act-{self._action_seq}"
+
+    def _stamp(self, ec: Optional[ExecutionContext]) -> Dict[str, Any]:
+        """Return a fresh extra-dict containing the execution context, or empty."""
+        if not self.stamp_context or ec is None or ec.is_empty():
+            return {}
+        return {"execution_context": ec.to_dict()}
+
+    def _resolve_context(self, ctx: Any) -> Optional[ExecutionContext]:
+        """Resolve an ExecutionContext for this call, or None."""
+        if self.context_getter is not None:
+            try:
+                ec = self.context_getter(ctx)
+            except Exception:
+                logger.exception("governance: context_getter raised; ignoring")
+                ec = None
+            if isinstance(ec, ExecutionContext):
+                return ec
+            if ec is None:
+                return None
+        return ExecutionContext.from_obj(ctx) if ctx is not None else None
 
     async def _emit(self, ctx: Any, rec: TraceRecord) -> None:
         """Persist a trace record on the agent's memory if available."""

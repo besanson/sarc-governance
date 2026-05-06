@@ -45,12 +45,34 @@ from sarc_governance.constraints import (
     allowed_points,
     is_compatible,
 )
+from sarc_governance.context import ExecutionContext
 from sarc_governance.escalation import EscalationHandler, EscalationRouter
 from sarc_governance.governance import ConstraintViolation, GovernanceToolset, MemoryProtocol, ToolsetProtocol
 from sarc_governance.trace import ActionEvent, TraceRecord, new_action_id
 from sarc_governance.audit import audit_trace
 from sarc_governance.specs import load_spec, load_spec_from_string
 from sarc_governance import predicates
+from sarc_governance.policy import (
+    PolicyBundle,
+    PolicyMetadata,
+    diff_policies,
+    inspect_policy,
+    policy_checksum,
+)
+from sarc_governance.hashchain import (
+    ChainBreak,
+    ChainError,
+    append_record,
+    canonical_event_hash,
+    chain_records,
+    verify_chain,
+)
+from sarc_governance.stores import (
+    JSONLTraceStore,
+    MemoryTraceStore,
+    SQLiteTraceStore,
+    TraceStore,
+)
 
 __version__ = "0.1.0"
 
@@ -64,6 +86,8 @@ __all__ = [
     "Response",
     "allowed_points",
     "is_compatible",
+    # execution context
+    "ExecutionContext",
     # governance
     "ConstraintViolation",
     "GovernanceToolset",
@@ -83,6 +107,24 @@ __all__ = [
     "load_spec_from_string",
     # predicate registry module
     "predicates",
+    # policy lifecycle
+    "PolicyBundle",
+    "PolicyMetadata",
+    "diff_policies",
+    "inspect_policy",
+    "policy_checksum",
+    # hash chain
+    "ChainBreak",
+    "ChainError",
+    "append_record",
+    "canonical_event_hash",
+    "chain_records",
+    "verify_chain",
+    # trace stores
+    "JSONLTraceStore",
+    "MemoryTraceStore",
+    "SQLiteTraceStore",
+    "TraceStore",
     # version
     "__version__",
 ]
