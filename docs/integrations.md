@@ -2,7 +2,32 @@
 
 `GovernanceToolset` wraps any object whose `call_tool(name, args, ctx, tool)`
 method is async. That makes integration with most agent frameworks a small
-adapter problem, not a fork. Below are four worked patterns.
+adapter problem, not a fork. Below are five worked patterns.
+
+## The common shape
+
+Every integration follows the same four-step recipe — only the surface details change:
+
+```
+framework tool-call event   ──►   normalize to (name, args)           [adapter]
+                                  ▼
+                           GovernanceToolset.call_tool(name, args, ctx)
+                                  ▼ PAG / ATM / inner call / PAA
+                           result   or   ConstraintViolation
+                                  ▼
+                           serialize back to the framework's response shape  [adapter]
+```
+
+| Framework | Tool-call event shape | Response shape | Adapter needed |
+|---|---|---|---|
+| **KAOS / pydantic-ai** | `AbstractToolset.call_tool(name, tool_args, ctx, tool)` | return value of `call_tool` | **None** — same shape |
+| **LangGraph** | `ToolCall(name, args, id)` on graph state | `ToolMessage(tool_call_id, content, status)` | small `tools_node` |
+| **OpenAI tool calling** | `assistant.tool_calls[].function.{name, arguments}` | `{"role": "tool", "tool_call_id", "content"}` | `dispatch_tool_calls` |
+| **AWS Bedrock action group** | Lambda event with `actionGroup` + `function`/`apiPath` + `parameters`/`requestBody` + `sessionAttributes` | `{"messageVersion", "response": {functionResponse \| responseBody}, "sessionAttributes", ...}` | Lambda handler with `normalize_event` + `build_response` |
+| **Generic async toolset** | whatever you have | whatever you have | one class with `async def call_tool` |
+
+None of these frameworks call SARC, and SARC does not import any of them. The
+adapter is just data marshaling around a single async method.
 
 ## 1. KAOS / pydantic-ai (zero-adapter)
 
@@ -93,7 +118,65 @@ async def dispatch_tool_calls(governed, tool_calls):
 Worked dependency-free demo:
 [`examples/openai_tool_calling_adapter/`](../examples/openai_tool_calling_adapter/README.md).
 
-## 4. Generic async toolset
+## 4. AWS Bedrock Agent action groups
+
+AWS Bedrock Agents dispatch tool calls to a Lambda action-group handler.
+The Lambda receives a JSON event with `actionGroup`, `function` (or `apiPath`
+for OpenAPI-schema action groups), `parameters` (or `requestBody`), and
+`sessionId` / `sessionAttributes`, and must return a specific response
+envelope. **Bedrock has its own action-group orchestration; it does not
+call KAOS or SARC.** SARC sits *inside the Lambda*, between the Bedrock
+event and the actual downstream system:
+
+```python
+from sarc_kaos import GovernanceToolset, ConstraintViolation
+
+class BedrockActionGroupHandler:
+    def __init__(self, governed: GovernanceToolset, memory):
+        self.governed = governed
+        self.memory = memory
+
+    async def handle(self, event):
+        norm = normalize_event(event)         # actionGroup + function/apiPath + params -> (name, args)
+        ctx  = BedrockCallContext(            # whatever predicates need to read
+            session_id=norm["session_id"],
+            action_group=norm["action_group"],
+            session_attributes=norm["session_attributes"],
+            memory=self.memory,
+        )
+        try:
+            result = await self.governed.call_tool(norm["name"], norm["args"], ctx=ctx)
+            body, status = result, 200
+        except ConstraintViolation as exc:
+            body = {"error": "blocked_by_governance",
+                    "constraint_id": exc.constraint_id, "point": exc.point.value}
+            status = 403
+        return build_response(                # back into Bedrock envelope
+            action_group=norm["action_group"],
+            function_or_path=norm["name"],
+            body=body, http_status=status,
+            session_attributes=ctx.session_attributes,
+            prompt_session_attributes=ctx.prompt_session_attributes,
+            is_api="apiPath" in event,
+        )
+```
+
+The handler keeps SARC ignorant of Bedrock specifics — it only sees
+`(name, args)` and a context object, the same as every other integration.
+Trace persistence uses `memory_getter` / `session_id_getter` that read
+from `BedrockCallContext` (Bedrock's session shape is not the KAOS
+`ctx.deps.memory` shape).
+
+> **Honest scope.** This is a Lambda / action-group adapter pattern, not
+> a certified Bedrock production integration. Replace the in-process
+> memory with a durable `MemoryProtocol` (DynamoDB, Redis, …) and wire the
+> `EscalationRouter` to SNS / SQS / EventBridge / your paging system before
+> running it in front of real money or real customers.
+
+Worked dependency-free demo:
+[`examples/bedrock_action_group_adapter/`](../examples/bedrock_action_group_adapter/README.md).
+
+## 5. Generic async toolset
 
 Any custom framework can be wrapped by writing a class with a single
 async `call_tool` method:

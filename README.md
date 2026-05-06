@@ -14,7 +14,7 @@ constraints (hard / soft / escalation) at three in-process points around every t
 - [Architecture](docs/architecture.md) — SARC loop, components, class × point compatibility.
 - [Spec authoring](docs/spec-authoring.md) — YAML schema, predicates, common mistakes.
 - [Audit traces](docs/audit-traces.md) — trace shapes, `audit_trace` semantics, CI workflow.
-- [Integrations](docs/integrations.md) — KAOS, LangGraph-style, OpenAI tool calling, generic.
+- [Integrations](docs/integrations.md) — KAOS, LangGraph-style, OpenAI tool calling, AWS Bedrock action groups, generic.
 - [Production hardening](docs/production-hardening.md) — persistence, observability, auth, perf, CI/CD.
 
 ## Command-line interface
@@ -33,28 +33,45 @@ trace schema.
 
 ---
 
-## Does this call KAOS?
+## Framework-agnostic by design
 
-**No.** `sarc-kaos` does **not** import KAOS or pydantic-ai and does not require either to
-be installed. The package is framework-neutral and depends only on `pyyaml` plus the
-standard library.
+**`sarc-kaos` does not import KAOS, pydantic-ai, LangGraph, OpenAI, or boto3 / Bedrock.**
+None of them are required to be installed. The package is framework-neutral and
+depends only on `pyyaml` plus the standard library. SARC-KAOS is the *governance
+layer*; orchestration is whatever you already use.
 
 What it does instead:
 
 - Defines two minimal `typing.Protocol` types — `ToolsetProtocol` (anything with an async
   `call_tool` method) and `MemoryProtocol` (anything with an async `add_event` method).
 - `GovernanceToolset` wraps **any** object that satisfies `ToolsetProtocol`. KAOS
-  `AbstractToolset` and pydantic-ai toolsets satisfy that shape, so they can be wrapped
-  directly with no adapter code.
+  `AbstractToolset` and pydantic-ai toolsets satisfy that shape directly; LangGraph
+  tool nodes, OpenAI tool-calling dispatch, and AWS Bedrock action-group Lambdas
+  each need a small adapter that normalizes the framework's tool-call event into
+  `(name, args)`.
 - Auto-detects KAOS-style `ctx.deps.memory` and `ctx.deps.session_id` for trace
   persistence, and falls back to user-supplied `memory_getter` / `session_id_getter`
   callables when the agent framework exposes those differently.
 - Runs standalone for POCs (the included procurement demo uses an in-process mock ERP
   and an in-memory session store — no agent framework involved).
 
-If you are building on KAOS, you wrap your existing toolset; the SARC layer adds
-enforcement and audit without changing the agent's tool-call surface. See
-[**Connecting to KAOS**](#connecting-to-kaos) below.
+### KAOS is not required for Bedrock
+
+A common confusion: **Bedrock has its own action-group / runtime orchestration and
+does not depend on KAOS or SARC.** SARC-KAOS wraps the Bedrock action-group boundary
+the same way it wraps a KAOS-style toolset — by sitting inside the Lambda handler
+between Bedrock's event and the downstream system. Pick whichever orchestration
+fits the deployment; the governance surface is identical.
+
+The same pattern applies in every direction: normalize the framework's tool-call
+event → SARC `call_tool(name, args, ctx, tool)` → governed execution → serialize
+the result back into the framework's response shape. See
+[`docs/integrations.md`](docs/integrations.md) for worked examples and a
+side-by-side comparison.
+
+If you are building on KAOS specifically, you wrap your existing toolset and the
+SARC layer adds enforcement and audit without changing the agent's tool-call
+surface. See [**Connecting to KAOS**](#connecting-to-kaos) below.
 
 ---
 
@@ -248,6 +265,7 @@ agent-side code changes are needed.
 | [`examples/human_escalation/`](examples/human_escalation/README.md) | approve / deny / timeout pattern for human-in-the-loop |
 | [`examples/langgraph_style_adapter/`](examples/langgraph_style_adapter/README.md) | Wrap a LangGraph-shaped tools node (no `langgraph` dependency) |
 | [`examples/openai_tool_calling_adapter/`](examples/openai_tool_calling_adapter/README.md) | Wrap OpenAI-style function dispatch (no `openai` dependency) |
+| [`examples/bedrock_action_group_adapter/`](examples/bedrock_action_group_adapter/README.md) | Wrap an AWS Bedrock Agent action-group Lambda handler (no `boto3` dependency) |
 | [`benchmarks/`](benchmarks/README.md) | Pre-computed SARC paper evaluation results and the script that produced them |
 | [`paper/`](paper/README.md) | LaTeX source for the SARC paper |
 | [`tests/`](tests/) | pytest suite covering specs, governance, audit, escalation, predicates, trace, CLI, examples |

@@ -55,7 +55,36 @@ incompatible point is flagged by `audit_trace` as a placement discrepancy.
 | Spec loader | `sarc_kaos.specs` | YAML/JSON → `ConstraintSpec`, no `eval`. |
 | CLI | `sarc_kaos.cli` | `validate` / `list-predicates` / `audit` / `demo`. |
 
-## Mapping to KAOS-shaped toolsets
+## SARC is orchestration-agnostic
+
+SARC-KAOS is a *governance* layer, not an *orchestration* layer. It does
+not run the agent loop, plan tool calls, or talk to a model — it sits at
+the boundary where some other system has already decided which tool to
+call and is about to dispatch it. KAOS, LangGraph, OpenAI tool calling,
+and AWS Bedrock action groups are all valid orchestrators above this
+boundary; SARC wraps the boundary the same way for each.
+
+```
+   model / planner          orchestration layer            governance layer            downstream
+  (whichever you use)   (KAOS / LangGraph / OpenAI /     (sarc-kaos, this lib)        (DB / API / ERP /
+                         Bedrock / your own loop)                                      payments / …)
+        │                          │                              │                          │
+        │  produces tool call      │                              │                          │
+        │ ─────────────────────►   │  framework-shaped event      │                          │
+        │                          │ ───────────────────────►     │  (name, args, ctx)        │
+        │                          │                              │  PAG ─► ATM ─► inner ─► PAA
+        │                          │                              │ ─────────────────────────►
+        │                          │  framework-shaped response   │  result or violation      │
+        │  ◄─────────────────────  │ ◄──────────────────────────  │ ◄──────────────────────── │
+```
+
+The arrows in the middle column are framework-specific (action-group
+events, LangGraph state mutation, OpenAI tool messages, KAOS
+`AbstractToolset` calls). The arrows in the right column are uniform —
+that uniformity is what makes the same `ConstraintSpec` portable across
+deployments.
+
+### Mapping to KAOS-shaped toolsets
 
 KAOS (and pydantic-ai) expose tool dispatch through an `AbstractToolset`
 whose `call_tool(name, tool_args, ctx, tool)` signature is exactly what
@@ -67,9 +96,19 @@ whose `call_tool(name, tool_args, ctx, tool)` signature is exactly what
    `ctx.deps.session_id`. If your project shape is different, supply
    `memory_getter=` and `session_id_getter=` callables instead.
 
-Other framework shapes (LangGraph, OpenAI tool calling) need a small
-adapter object that implements `ToolsetProtocol` over their native
-dispatch. See [`integrations.md`](integrations.md) for the patterns.
+### Mapping to other shapes
+
+Other framework shapes (LangGraph, OpenAI tool calling, AWS Bedrock
+action groups) need a small adapter object that implements
+`ToolsetProtocol` over their native dispatch and (for Bedrock) a thin
+event-normalize / response-build pair around it. See
+[`integrations.md`](integrations.md) for the patterns and a side-by-side
+comparison.
+
+> SARC-KAOS does **not** import KAOS, pydantic-ai, LangGraph, OpenAI, or
+> boto3 / Bedrock. The library depends only on `pyyaml` plus the standard
+> library. Pick whichever orchestration fits the deployment; the
+> governance surface is identical.
 
 ## Trace record schema
 
