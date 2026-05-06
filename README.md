@@ -3,16 +3,28 @@
 A runtime governance layer that wraps any async toolset and enforces declarative
 constraints (hard / soft / escalation) at three in-process points around every tool call.
 
-> **Status:** developer toolkit + pre-production foundations on top of the SARC
-> architecture from *"SARC: A Runtime Governance Architecture for Tool-Using
-> Agentic AI Systems"* ([`paper/`](paper/README.md)). Suitable for prototypes,
-> evaluation, serious POCs, and as the runtime spine of a hardened deployment;
-> see [docs/pre-production-checklist.md](docs/pre-production-checklist.md) for
-> what now ships in the library, and
-> [docs/production-hardening.md](docs/production-hardening.md) for what is still
-> the deploying organisation's responsibility.
+> **Status — read this first.** Developer toolkit + pre-production
+> foundations on top of the SARC architecture from *"SARC: A Runtime
+> Governance Architecture for Tool-Using Agentic AI Systems"*
+> ([`paper/`](paper/README.md)). Stable enough for prototypes,
+> evaluation, serious POCs, and as the runtime spine of a hardened
+> deployment. **It is not a turnkey production system.** The hash chain
+> is *tamper-evident, not tamper-proof*; `approval_status="approved"` is
+> a string that the deploying organisation's CI/CD must enforce; the
+> shipped trace stores are single-writer; the default escalation router
+> only logs. See [docs/mental-model.md](docs/mental-model.md) for the
+> full "is / is not" map and
+> [docs/production-hardening.md](docs/production-hardening.md) for what
+> remains your responsibility.
 
-## Documentation
+## Start here
+
+- [Mental model](docs/mental-model.md) — what `sarc-governance` is and is not, in one page.
+- [Quickstart for developers](docs/quickstart-for-developers.md) — 10-minute path from clone to first governed call.
+- [FAQ](docs/faq.md) — does it call cloud providers, replace Bedrock, make logs tamper-proof, etc.
+- [Integration checklist](docs/integration-checklist.md) — the decisions you have to make before shipping.
+
+## Reference docs
 
 - [Architecture](docs/architecture.md) — SARC loop, components, class × point compatibility.
 - [Spec authoring](docs/spec-authoring.md) — YAML schema, predicates, common mistakes.
