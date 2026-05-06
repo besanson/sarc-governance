@@ -1,0 +1,35 @@
+# SARC constraint specification — Procurement Agent demo
+#
+# Three constraints covering the paper's running example:
+#   ch_high_value_po   — hard   — block high-value POs before dispatch
+#   ce_first_time_supplier — escalation — route new supplier orders for review
+#   cs_rolling_spend   — soft   — flag rolling 24-hour spend overages post-action
+
+constraints:
+
+  - id: ch_high_value_po
+    class: hard
+    verif: PAG
+    response: block_or_escalate
+    predicate: is_high_value_po
+    description: >
+      Block purchase orders of $50 000 or more before the ERP tool is
+      invoked.  Hard class means no execution may occur.
+
+  - id: ce_first_time_supplier
+    class: escalation
+    verif: PAG
+    response: suspend_route_default_deny
+    predicate: is_first_time_supplier
+    description: >
+      Suspend and route to human review any order with a first-time supplier.
+      The action is blocked pending approval.
+
+  - id: cs_rolling_spend
+    class: soft
+    verif: PAA
+    response: throttle_log
+    predicate: rolling_spend_over_threshold
+    description: >
+      After a PO executes, check whether the rolling 24-hour spend has
+      reached $475 000 and log/throttle if so.

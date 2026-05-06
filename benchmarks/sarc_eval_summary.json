@@ -1,0 +1,228 @@
+{
+  "benchmark": [
+    {
+      "regime": "post_hoc",
+      "metric": "hard_executed",
+      "mean": 26.8,
+      "ci95": 1.4078181700773718
+    },
+    {
+      "regime": "post_hoc",
+      "metric": "soft_overages",
+      "mean": 949.84,
+      "ci95": 2.915422604014725
+    },
+    {
+      "regime": "post_hoc",
+      "metric": "supplier_without_review",
+      "mean": 132.28,
+      "ci95": 2.430709657692584
+    },
+    {
+      "regime": "post_hoc",
+      "metric": "escalations",
+      "mean": 0,
+      "ci95": 0.0
+    },
+    {
+      "regime": "post_hoc",
+      "metric": "latency_ms_per_step",
+      "mean": 0.0,
+      "ci95": 0.0
+    },
+    {
+      "regime": "output_filter",
+      "metric": "hard_executed",
+      "mean": 19.44,
+      "ci95": 1.1188233819508777
+    },
+    {
+      "regime": "output_filter",
+      "metric": "soft_overages",
+      "mean": 947.44,
+      "ci95": 3.7294318280402976
+    },
+    {
+      "regime": "output_filter",
+      "metric": "supplier_without_review",
+      "mean": 132.66,
+      "ci95": 2.3059559752952787
+    },
+    {
+      "regime": "output_filter",
+      "metric": "escalations",
+      "mean": 0,
+      "ci95": 0.0
+    },
+    {
+      "regime": "output_filter",
+      "metric": "latency_ms_per_step",
+      "mean": 7.0,
+      "ci95": 0.0
+    },
+    {
+      "regime": "workflow_rules",
+      "metric": "hard_executed",
+      "mean": 0,
+      "ci95": 0.0
+    },
+    {
+      "regime": "workflow_rules",
+      "metric": "soft_overages",
+      "mean": 935.6,
+      "ci95": 2.3278762853725707
+    },
+    {
+      "regime": "workflow_rules",
+      "metric": "supplier_without_review",
+      "mean": 129.04,
+      "ci95": 2.5711014293489085
+    },
+    {
+      "regime": "workflow_rules",
+      "metric": "escalations",
+      "mean": 0,
+      "ci95": 0.0
+    },
+    {
+      "regime": "workflow_rules",
+      "metric": "latency_ms_per_step",
+      "mean": 12.0,
+      "ci95": 0.0
+    },
+    {
+      "regime": "policy_as_code_only",
+      "metric": "hard_executed",
+      "mean": 0,
+      "ci95": 0.0
+    },
+    {
+      "regime": "policy_as_code_only",
+      "metric": "soft_overages",
+      "mean": 937.08,
+      "ci95": 2.1389067861877478
+    },
+    {
+      "regime": "policy_as_code_only",
+      "metric": "supplier_without_review",
+      "mean": 0,
+      "ci95": 0.0
+    },
+    {
+      "regime": "policy_as_code_only",
+      "metric": "escalations",
+      "mean": 133.84,
+      "ci95": 2.5189793488633447
+    },
+    {
+      "regime": "policy_as_code_only",
+      "metric": "latency_ms_per_step",
+      "mean": 15.0,
+      "ci95": 0.0
+    },
+    {
+      "regime": "sarc",
+      "metric": "hard_executed",
+      "mean": 0,
+      "ci95": 0.0
+    },
+    {
+      "regime": "sarc",
+      "metric": "soft_overages",
+      "mean": 98.8,
+      "ci95": 0.9811992662043729
+    },
+    {
+      "regime": "sarc",
+      "metric": "supplier_without_review",
+      "mean": 0,
+      "ci95": 0.0
+    },
+    {
+      "regime": "sarc",
+      "metric": "escalations",
+      "mean": 160.16,
+      "ci95": 3.3391030172787417
+    },
+    {
+      "regime": "sarc",
+      "metric": "latency_ms_per_step",
+      "mean": 21.0,
+      "ci95": 0.0
+    }
+  ],
+  "noise_sweep": [
+    {
+      "pred_noise": 0,
+      "exec_fail": 0,
+      "hard_executed_mean": 0,
+      "hard_executed_ci95": 0.0
+    },
+    {
+      "pred_noise": 0,
+      "exec_fail": 0.01,
+      "hard_executed_mean": 0.26,
+      "hard_executed_ci95": 0.14613746952783876
+    },
+    {
+      "pred_noise": 0,
+      "exec_fail": 0.05,
+      "hard_executed_mean": 1.2,
+      "hard_executed_ci95": 0.3117948043184812
+    },
+    {
+      "pred_noise": 0.01,
+      "exec_fail": 0,
+      "hard_executed_mean": 0.2,
+      "hard_executed_ci95": 0.13717142559585796
+    },
+    {
+      "pred_noise": 0.01,
+      "exec_fail": 0.01,
+      "hard_executed_mean": 0.46,
+      "hard_executed_ci95": 0.20353515666832594
+    },
+    {
+      "pred_noise": 0.01,
+      "exec_fail": 0.05,
+      "hard_executed_mean": 1.38,
+      "hard_executed_ci95": 0.3580936190439589
+    },
+    {
+      "pred_noise": 0.05,
+      "exec_fail": 0,
+      "hard_executed_mean": 1.32,
+      "hard_executed_ci95": 0.34719999999999995
+    },
+    {
+      "pred_noise": 0.05,
+      "exec_fail": 0.01,
+      "hard_executed_mean": 1.58,
+      "hard_executed_ci95": 0.3676006528829893
+    },
+    {
+      "pred_noise": 0.05,
+      "exec_fail": 0.05,
+      "hard_executed_mean": 2.5,
+      "hard_executed_ci95": 0.4592341450719883
+    },
+    {
+      "pred_noise": 0.1,
+      "exec_fail": 0,
+      "hard_executed_mean": 2.52,
+      "hard_executed_ci95": 0.49533891427990995
+    },
+    {
+      "pred_noise": 0.1,
+      "exec_fail": 0.01,
+      "hard_executed_mean": 2.78,
+      "hard_executed_ci95": 0.5079974803087117
+    },
+    {
+      "pred_noise": 0.1,
+      "exec_fail": 0.05,
+      "hard_executed_mean": 3.66,
+      "hard_executed_ci95": 0.5862908493230983
+    }
+  ]
+}
