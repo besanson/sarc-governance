@@ -1,0 +1,32 @@
+[
+  {
+    "action_id": "act-1",
+    "tool": "erp.create_po",
+    "point": "PAA",
+    "constraint_id": "ch_high_value_po",
+    "class": "hard",
+    "fired": true,
+    "response": "log",
+    "timestamp": 1700000000.0
+  },
+  {
+    "action_id": "act-1",
+    "tool": "erp.create_po",
+    "point": "PAA",
+    "constraint_id": "cs_rolling_spend",
+    "class": "soft",
+    "fired": false,
+    "response": "throttle_log",
+    "timestamp": 1700000000.05
+  },
+  {
+    "action_id": "act-2",
+    "tool": "erp.create_po",
+    "point": "PAG",
+    "constraint_id": "ch_high_value_po",
+    "class": "hard",
+    "fired": false,
+    "response": "block_or_escalate",
+    "timestamp": 1700000010.0
+  }
+]

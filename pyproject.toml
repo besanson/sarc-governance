@@ -20,6 +20,9 @@ dev = [
     "black>=24.0",
 ]
 
+[project.scripts]
+sarc-kaos = "sarc_kaos.cli:main"
+
 [tool.setuptools.packages.find]
 where = ["src"]
 

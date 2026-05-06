@@ -1,0 +1,21 @@
+# SARC spec used by examples/audit_trace_file/.
+#
+# Two constraints — one hard PAG and one soft PAA — that together exercise
+# coverage, placement, and response invariants when audited against the
+# included pass/fail trace files.
+
+constraints:
+
+  - id: ch_high_value_po
+    class: hard
+    verif: PAG
+    response: block_or_escalate
+    predicate: is_high_value_po
+    description: Block POs with amount >= $50,000 before ERP dispatch.
+
+  - id: cs_rolling_spend
+    class: soft
+    verif: PAA
+    response: throttle_log
+    predicate: rolling_spend_over_threshold
+    description: Flag rolling 24h spend at or above $475,000 post-action.

@@ -3,10 +3,33 @@
 A runtime governance layer that wraps any async toolset and enforces declarative
 constraints (hard / soft / escalation) at three in-process points around every tool call.
 
-> **Status:** runnable POC / reference implementation of the SARC architecture from
-> *"SARC: A Runtime Governance Architecture for Tool-Using Agentic AI Systems"*
-> ([`paper/`](paper/README.md)). Suitable for prototypes and benchmarks; not hardened
-> for production deployment.
+> **Status:** developer toolkit / reference implementation of the SARC architecture
+> from *"SARC: A Runtime Governance Architecture for Tool-Using Agentic AI Systems"*
+> ([`paper/`](paper/README.md)). Suitable for prototypes, evaluation, and serious POCs;
+> see [docs/production-hardening.md](docs/production-hardening.md) for what's still
+> needed before a production deployment.
+
+## Documentation
+
+- [Architecture](docs/architecture.md) — SARC loop, components, class × point compatibility.
+- [Spec authoring](docs/spec-authoring.md) — YAML schema, predicates, common mistakes.
+- [Audit traces](docs/audit-traces.md) — trace shapes, `audit_trace` semantics, CI workflow.
+- [Integrations](docs/integrations.md) — KAOS, LangGraph-style, OpenAI tool calling, generic.
+- [Production hardening](docs/production-hardening.md) — persistence, observability, auth, perf, CI/CD.
+
+## Command-line interface
+
+```bash
+sarc-kaos validate examples/procurement_agent/sarc_spec.yaml
+sarc-kaos list-predicates
+sarc-kaos audit  examples/audit_trace_file/spec.yaml \
+                  examples/audit_trace_file/trace_pass.json
+sarc-kaos demo procurement
+```
+
+`audit` exits non-zero on discrepancies (override with `--allow-discrepancies`),
+making it CI-friendly. See [docs/audit-traces.md](docs/audit-traces.md) for the
+trace schema.
 
 ---
 
@@ -217,12 +240,17 @@ agent-side code changes are needed.
 
 | Path | Contents |
 |---|---|
-| [`src/sarc_kaos/`](src/sarc_kaos/) | Core package: constraints, governance, escalation, audit, trace, specs, predicates |
+| [`src/sarc_kaos/`](src/sarc_kaos/) | Core package: constraints, governance, escalation, audit, trace, specs, predicates, CLI |
+| [`docs/`](docs/) | Architecture, spec authoring, audit, integrations, production-hardening guides |
 | [`examples/procurement_agent/`](examples/procurement_agent/README.md) | End-to-end demo with a mock ERP toolset and YAML spec |
 | [`examples/kaos_style_adapter/`](examples/kaos_style_adapter/README.md) | Minimal KAOS/pydantic-ai-shaped `ctx.deps` wiring (no KAOS dependency) |
+| [`examples/audit_trace_file/`](examples/audit_trace_file/README.md) | Spec + pass/fail trace JSON for the `sarc-kaos audit` CLI |
+| [`examples/human_escalation/`](examples/human_escalation/README.md) | approve / deny / timeout pattern for human-in-the-loop |
+| [`examples/langgraph_style_adapter/`](examples/langgraph_style_adapter/README.md) | Wrap a LangGraph-shaped tools node (no `langgraph` dependency) |
+| [`examples/openai_tool_calling_adapter/`](examples/openai_tool_calling_adapter/README.md) | Wrap OpenAI-style function dispatch (no `openai` dependency) |
 | [`benchmarks/`](benchmarks/README.md) | Pre-computed SARC paper evaluation results and the script that produced them |
 | [`paper/`](paper/README.md) | LaTeX source for the SARC paper |
-| [`tests/`](tests/) | pytest suite covering specs, governance, audit, escalation, predicates, trace, procurement demo |
+| [`tests/`](tests/) | pytest suite covering specs, governance, audit, escalation, predicates, trace, CLI, examples |
 
 ---
 
