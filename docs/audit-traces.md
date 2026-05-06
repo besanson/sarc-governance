@@ -70,8 +70,8 @@ trace = memory.governance_events(session_id)
 pathlib.Path("trace.json").write_text(json.dumps(trace, indent=2))
 ```
 
-Both bundled demos (`procurement_agent`, `kaos_style_adapter`) include an
-in-process memory shim that does exactly this.
+The bundled `procurement_agent` demo includes an in-process memory shim
+that does exactly this.
 
 ## Auditing from the CLI
 

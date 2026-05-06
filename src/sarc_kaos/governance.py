@@ -1,7 +1,7 @@
 """SARC GovernanceToolset — framework-adapter-friendly wrapper.
 
-This module is intentionally **not hard-coupled** to KAOS or pydantic-ai
-internals.  It defines two lightweight ``Protocol`` types:
+This module is intentionally **framework-agnostic**: no specific agent
+framework is imported.  It defines two lightweight ``Protocol`` types:
 
 - ``ToolsetProtocol``: any async toolset with a ``call_tool`` method.
 - ``MemoryProtocol``: any session memory that can persist events.
@@ -27,13 +27,12 @@ constraints at three in-process enforcement points:
 Every evaluation produces a ``TraceRecord`` which is persisted via
 ``MemoryProtocol.add_event`` if a memory and session_id are supplied.
 
-Adapting to KAOS / pydantic-ai
--------------------------------
-Pass your ``AbstractToolset`` directly:
+Zero-adapter case
+-----------------
+Any toolset whose ``call_tool(name, args, ctx, tool)`` method is async
+already satisfies ``ToolsetProtocol``. Pass it directly::
 
-    from pais.governance import GovernanceToolset as KaosGov
-    # or use this standalone wrapper:
-    toolset = GovernanceToolset(wrapped=my_abstract_toolset, spec=spec)
+    toolset = GovernanceToolset(wrapped=my_async_toolset, spec=spec)
 
 Adapting to any other framework
 ---------------------------------
@@ -127,7 +126,7 @@ class GovernanceToolset:
     memory_getter:
         Optional callable ``(ctx) -> MemoryProtocol | None``.  Called on
         every invocation to retrieve the current memory backend.  Useful
-        when memory is embedded in a KAOS ``AgentDeps`` or similar.
+        when memory is embedded in an ``AgentDeps``-style object or similar.
     session_id_getter:
         Optional callable ``(ctx) -> str``.  Extracts the session id from
         the context object.
@@ -160,8 +159,8 @@ class GovernanceToolset:
         tool_args:
             Tool arguments dict.
         ctx:
-            Framework context object (e.g. ``RunContext[AgentDeps]`` in KAOS).
-            Passed unchanged to the inner toolset.
+            Framework context object (e.g. a ``RunContext[AgentDeps]``-style
+            object). Passed unchanged to the inner toolset.
         tool:
             Framework tool descriptor.  Passed unchanged to the inner toolset.
         """
@@ -262,7 +261,7 @@ class GovernanceToolset:
             memory = self.memory_getter(ctx)
 
         if memory is None and ctx is not None:
-            # KAOS-style: ctx.deps.memory / ctx.deps.session_id
+            # AgentDeps-style auto-detection: ctx.deps.memory / ctx.deps.session_id
             deps = getattr(ctx, "deps", None)
             if deps is not None:
                 memory = getattr(deps, "memory", None)

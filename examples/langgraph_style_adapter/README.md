@@ -70,5 +70,5 @@ have the planning node either route the work to a human or stop.
 
 If you have a session-memory store on `state` (or on a parent context),
 pass `memory_getter` and `session_id_getter` to `GovernanceToolset`. The
-auto-detection of `ctx.deps.memory` from the KAOS adapter does not apply
-here because LangGraph's state shape is different.
+auto-detection of `ctx.deps.memory` / `ctx.deps.session_id` does not
+apply here because LangGraph's state shape is different.

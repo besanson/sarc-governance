@@ -8,15 +8,15 @@ built by hand, and the "Lambda" is a plain Python function.
 
 > **Honest scope.** This is a Lambda / action-group *adapter pattern*, not
 > a certified Bedrock production integration. The goal is to show how the
-> same SARC surface that wraps KAOS, LangGraph, or OpenAI tool calling
-> wraps Bedrock's action-group boundary — using only `(name, args)` and an
-> async `call_tool`.
+> same SARC surface that wraps LangGraph, OpenAI tool calling, or any
+> other async toolset wraps Bedrock's action-group boundary — using only
+> `(name, args)` and an async `call_tool`.
 
-## Does Bedrock call SARC (or KAOS)?
+## Does Bedrock call SARC?
 
 **No.** Bedrock has its own action-group / runtime orchestration and does
-not depend on KAOS or SARC. SARC-KAOS wraps the tool-dispatch boundary the
-same way it wraps KAOS-style toolsets: you put the `GovernanceToolset`
+not depend on SARC. SARC-KAOS wraps the tool-dispatch boundary the same
+way it wraps any other async toolset: you put the `GovernanceToolset`
 between the framework event and the downstream system.
 
 In AWS terms, SARC lives **inside the Lambda** that backs the action

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "sarc-kaos"
 version = "0.1.0"
-description = "SARC runtime governance layer, buildable on top of KAOS / pydantic-ai toolsets"
+description = "SARC runtime governance layer for async toolsets — framework-agnostic"
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.11"

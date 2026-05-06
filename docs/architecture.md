@@ -60,13 +60,13 @@ incompatible point is flagged by `audit_trace` as a placement discrepancy.
 SARC-KAOS is a *governance* layer, not an *orchestration* layer. It does
 not run the agent loop, plan tool calls, or talk to a model — it sits at
 the boundary where some other system has already decided which tool to
-call and is about to dispatch it. KAOS, LangGraph, OpenAI tool calling,
-and AWS Bedrock action groups are all valid orchestrators above this
-boundary; SARC wraps the boundary the same way for each.
+call and is about to dispatch it. LangGraph, OpenAI tool calling, AWS
+Bedrock action groups, and any custom orchestrator are all valid above
+this boundary; SARC wraps the boundary the same way for each.
 
 ```
    model / planner          orchestration layer            governance layer            downstream
-  (whichever you use)   (KAOS / LangGraph / OpenAI /     (sarc-kaos, this lib)        (DB / API / ERP /
+  (whichever you use)   (LangGraph / OpenAI /            (sarc-kaos, this lib)        (DB / API / ERP /
                          Bedrock / your own loop)                                      payments / …)
         │                          │                              │                          │
         │  produces tool call      │                              │                          │
@@ -79,22 +79,22 @@ boundary; SARC wraps the boundary the same way for each.
 ```
 
 The arrows in the middle column are framework-specific (action-group
-events, LangGraph state mutation, OpenAI tool messages, KAOS
-`AbstractToolset` calls). The arrows in the right column are uniform —
-that uniformity is what makes the same `ConstraintSpec` portable across
-deployments.
+events, LangGraph state mutation, OpenAI tool messages, custom toolset
+calls). The arrows in the right column are uniform — that uniformity is
+what makes the same `ConstraintSpec` portable across deployments.
 
-### Mapping to KAOS-shaped toolsets
+### Zero-adapter case
 
-KAOS (and pydantic-ai) expose tool dispatch through an `AbstractToolset`
-whose `call_tool(name, tool_args, ctx, tool)` signature is exactly what
-`GovernanceToolset` consumes and forwards. Two consequences:
+Any orchestration whose toolset already exposes
+`call_tool(name, tool_args, ctx, tool)` (an in-house async toolset class,
+or any framework whose toolset shape happens to match) needs no adapter:
 
-1. **No adapter code is needed.** Pass an `AbstractToolset` to
+1. **No adapter code is needed.** Pass the toolset to
    `GovernanceToolset(wrapped=...)` and the agent loop is unchanged.
 2. **Trace persistence auto-detects** `ctx.deps.memory` and
-   `ctx.deps.session_id`. If your project shape is different, supply
-   `memory_getter=` and `session_id_getter=` callables instead.
+   `ctx.deps.session_id` when the context object exposes that shape. If
+   your project shape is different, supply `memory_getter=` and
+   `session_id_getter=` callables instead.
 
 ### Mapping to other shapes
 
@@ -105,10 +105,10 @@ event-normalize / response-build pair around it. See
 [`integrations.md`](integrations.md) for the patterns and a side-by-side
 comparison.
 
-> SARC-KAOS does **not** import KAOS, pydantic-ai, LangGraph, OpenAI, or
-> boto3 / Bedrock. The library depends only on `pyyaml` plus the standard
-> library. Pick whichever orchestration fits the deployment; the
-> governance surface is identical.
+> SARC-KAOS does **not** import LangGraph, OpenAI, boto3 / Bedrock, or
+> any other agent framework. The library depends only on `pyyaml` plus
+> the standard library. Pick whichever orchestration fits the
+> deployment; the governance surface is identical.
 
 ## Trace record schema
 

@@ -40,8 +40,8 @@ entry point and the actual downstream system. No ``boto3`` or AWS SDK is
 involved — events are constructed by hand and the "Lambda" is just a
 Python function.
 
-**Bedrock does not call SARC, KAOS, or anything else for governance.** The
-adapter pattern is identical to KAOS / LangGraph / OpenAI: normalize the
+**Bedrock does not call SARC or any other governance layer.** The adapter
+pattern is the same as for LangGraph or OpenAI tool calling: normalize the
 framework's tool-call event into ``(name, args)``, run it through SARC, and
 serialize the result back into the framework's response shape.
 

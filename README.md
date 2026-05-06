@@ -14,7 +14,7 @@ constraints (hard / soft / escalation) at three in-process points around every t
 - [Architecture](docs/architecture.md) — SARC loop, components, class × point compatibility.
 - [Spec authoring](docs/spec-authoring.md) — YAML schema, predicates, common mistakes.
 - [Audit traces](docs/audit-traces.md) — trace shapes, `audit_trace` semantics, CI workflow.
-- [Integrations](docs/integrations.md) — KAOS, LangGraph-style, OpenAI tool calling, AWS Bedrock action groups, generic.
+- [Integrations](docs/integrations.md) — LangGraph-style, OpenAI tool calling, AWS Bedrock action groups, generic async toolsets.
 - [Production hardening](docs/production-hardening.md) — persistence, observability, auth, perf, CI/CD.
 
 ## Command-line interface
@@ -35,43 +35,32 @@ trace schema.
 
 ## Framework-agnostic by design
 
-**`sarc-kaos` does not import KAOS, pydantic-ai, LangGraph, OpenAI, or boto3 / Bedrock.**
-None of them are required to be installed. The package is framework-neutral and
-depends only on `pyyaml` plus the standard library. SARC-KAOS is the *governance
-layer*; orchestration is whatever you already use.
+**`sarc-kaos` does not import any specific agent framework.** LangGraph, OpenAI,
+boto3 / Bedrock, pydantic-ai, and similar libraries are all optional — none are
+required to be installed. The package is framework-neutral and depends only on
+`pyyaml` plus the standard library. SARC-KAOS is the *governance layer*;
+orchestration is whatever you already use.
 
 What it does instead:
 
 - Defines two minimal `typing.Protocol` types — `ToolsetProtocol` (anything with an async
   `call_tool` method) and `MemoryProtocol` (anything with an async `add_event` method).
-- `GovernanceToolset` wraps **any** object that satisfies `ToolsetProtocol`. KAOS
-  `AbstractToolset` and pydantic-ai toolsets satisfy that shape directly; LangGraph
-  tool nodes, OpenAI tool-calling dispatch, and AWS Bedrock action-group Lambdas
-  each need a small adapter that normalizes the framework's tool-call event into
-  `(name, args)`.
-- Auto-detects KAOS-style `ctx.deps.memory` and `ctx.deps.session_id` for trace
-  persistence, and falls back to user-supplied `memory_getter` / `session_id_getter`
-  callables when the agent framework exposes those differently.
+- `GovernanceToolset` wraps **any** object that satisfies `ToolsetProtocol`. LangGraph
+  tool nodes, OpenAI tool-calling dispatch, AWS Bedrock action-group Lambdas, and
+  arbitrary in-house async toolsets each need (at most) a small adapter that
+  normalizes the framework's tool-call event into `(name, args)`.
+- Auto-detects `ctx.deps.memory` and `ctx.deps.session_id` for trace persistence
+  when the orchestration layer exposes that shape, and falls back to user-supplied
+  `memory_getter` / `session_id_getter` callables when the agent framework exposes
+  those differently.
 - Runs standalone for POCs (the included procurement demo uses an in-process mock ERP
   and an in-memory session store — no agent framework involved).
 
-### KAOS is not required for Bedrock
-
-A common confusion: **Bedrock has its own action-group / runtime orchestration and
-does not depend on KAOS or SARC.** SARC-KAOS wraps the Bedrock action-group boundary
-the same way it wraps a KAOS-style toolset — by sitting inside the Lambda handler
-between Bedrock's event and the downstream system. Pick whichever orchestration
-fits the deployment; the governance surface is identical.
-
-The same pattern applies in every direction: normalize the framework's tool-call
+The recipe is the same in every direction: normalize the framework's tool-call
 event → SARC `call_tool(name, args, ctx, tool)` → governed execution → serialize
 the result back into the framework's response shape. See
 [`docs/integrations.md`](docs/integrations.md) for worked examples and a
 side-by-side comparison.
-
-If you are building on KAOS specifically, you wrap your existing toolset and the
-SARC layer adds enforcement and audit without changing the agent's tool-call
-surface. See [**Connecting to KAOS**](#connecting-to-kaos) below.
 
 ---
 
@@ -108,14 +97,10 @@ pytest
 
 # Run the procurement demo (six scenarios, audit summary at the end)
 python examples/procurement_agent/run_demo.py
-
-# Run the KAOS-style adapter demo (mock ctx.deps.memory + ctx.deps.session_id)
-python examples/kaos_style_adapter/run_demo.py
 ```
 
 No external services. No API keys. The procurement demo prints per-scenario outcomes
-and a final SARC audit summary; the adapter demo prints the trace records that were
-auto-persisted onto the mock `ctx.deps.memory`.
+and a final SARC audit summary.
 
 ---
 
@@ -198,7 +183,7 @@ In each case the agent code is unchanged; only the `ConstraintSpec` differs.
 - `GovernanceToolset.call_tool` dispatching PAG, ATM, PAA enforcement around any
   `ToolsetProtocol`.
 - `EscalationRouter` with a pluggable async handler and a default log-only handler.
-- `TraceRecord` emission with auto-persistence to `ctx.deps.memory` (KAOS shape) or via
+- `TraceRecord` emission with auto-persistence to a `ctx.deps.memory` shape or via
   user-supplied getters.
 - YAML / dict spec loading with named-predicate resolution.
 - `audit_trace` for offline conformance checking (coverage / placement / response /
@@ -225,34 +210,6 @@ In each case the agent code is unchanged; only the `ConstraintSpec` differs.
 
 ---
 
-## Connecting to KAOS
-
-`GovernanceToolset` already speaks the KAOS toolset shape. In a real KAOS app you
-wrap your `AbstractToolset` and let the auto-detection of `ctx.deps.memory` and
-`ctx.deps.session_id` handle trace persistence:
-
-```python
-# In a KAOS / pydantic-ai project (KAOS not vendored here)
-from sarc_kaos import GovernanceToolset
-from sarc_kaos.specs import load_spec
-
-spec = load_spec("config/sarc_spec.yaml")
-governed_tools = GovernanceToolset(wrapped=my_kaos_toolset, spec=spec)
-
-# Hand `governed_tools` to the agent wherever `my_kaos_toolset` would have gone.
-# Trace records flow into ctx.deps.memory automatically when the agent runs.
-```
-
-A runnable, dependency-free version of this wiring — using a fake KAOS-shaped
-`ctx.deps` — lives at [`examples/kaos_style_adapter/`](examples/kaos_style_adapter/README.md).
-
-To go the other direction (use SARC inside an existing KAOS deployment): import
-`GovernanceToolset` once at the boundary where your tools are constructed, build a
-`ConstraintSpec` from your governance YAML, and replace the toolset reference. No
-agent-side code changes are needed.
-
----
-
 ## Repository layout
 
 | Path | Contents |
@@ -260,7 +217,6 @@ agent-side code changes are needed.
 | [`src/sarc_kaos/`](src/sarc_kaos/) | Core package: constraints, governance, escalation, audit, trace, specs, predicates, CLI |
 | [`docs/`](docs/) | Architecture, spec authoring, audit, integrations, production-hardening guides |
 | [`examples/procurement_agent/`](examples/procurement_agent/README.md) | End-to-end demo with a mock ERP toolset and YAML spec |
-| [`examples/kaos_style_adapter/`](examples/kaos_style_adapter/README.md) | Minimal KAOS/pydantic-ai-shaped `ctx.deps` wiring (no KAOS dependency) |
 | [`examples/audit_trace_file/`](examples/audit_trace_file/README.md) | Spec + pass/fail trace JSON for the `sarc-kaos audit` CLI |
 | [`examples/human_escalation/`](examples/human_escalation/README.md) | approve / deny / timeout pattern for human-in-the-loop |
 | [`examples/langgraph_style_adapter/`](examples/langgraph_style_adapter/README.md) | Wrap a LangGraph-shaped tools node (no `langgraph` dependency) |

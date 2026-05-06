@@ -28,9 +28,9 @@ sarc-kaos audit examples/audit_trace_file/spec.yaml \
 ```
 
 To capture a trace from your own run, persist `TraceRecord.to_dict()` for
-every governance event (the `examples/procurement_agent/run_demo.py` and
-`examples/kaos_style_adapter/run_demo.py` demos both do this via an
-in-process `MemoryProtocol` shim) and dump the list to JSON.
+every governance event (the `examples/procurement_agent/run_demo.py` demo
+does this via an in-process `MemoryProtocol` shim) and dump the list to
+JSON.
 
 ## Using `--allow-discrepancies`
 

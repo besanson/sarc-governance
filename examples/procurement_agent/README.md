@@ -84,16 +84,18 @@ hard-blocked at PAG: when PAG raises before dispatch, ATM/PAA never run, so the
 recorded trace for that action is intentionally incomplete. The demo prints a note
 explaining this.
 
-## Adapting to KAOS / pydantic-ai
+## Adapting to your own orchestration layer
 
-In a real KAOS or pydantic-ai project, drop the `memory_getter` and `session_id_getter`
-overrides — `GovernanceToolset` will auto-detect `ctx.deps.memory` and
-`ctx.deps.session_id`:
+If your context object already exposes `ctx.deps.memory` and
+`ctx.deps.session_id`, drop the `memory_getter` and `session_id_getter`
+overrides — `GovernanceToolset` will auto-detect them:
 
 ```python
 from sarc_kaos import GovernanceToolset
-governed = GovernanceToolset(wrapped=my_kaos_toolset, spec=spec)
+governed = GovernanceToolset(wrapped=my_toolset, spec=spec)
 ```
 
-For a dependency-free runnable version of that wiring, see
-[`../kaos_style_adapter/`](../kaos_style_adapter/README.md).
+Otherwise, keep the explicit getters as this demo does, or see
+[`../../docs/integrations.md`](../../docs/integrations.md) for adapter
+patterns for LangGraph, OpenAI tool calling, AWS Bedrock action groups,
+and arbitrary async toolsets.

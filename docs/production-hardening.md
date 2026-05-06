@@ -15,8 +15,9 @@ layer.
 | Action attribution | Captured by callers; not normalized. | Schema for actor/session/agent identity flowing into every record. |
 
 Provide your own `MemoryProtocol` implementation and pass it via the
-`memory_getter` callback (or via `ctx.deps.memory` if you adopt the KAOS
-shape). The library does not make a storage choice for you.
+`memory_getter` callback (or via `ctx.deps.memory` if your context object
+already exposes that shape). The library does not make a storage choice
+for you.
 
 ## Observability
 
