@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from sarc_kaos.constraints import (
+from sarc_governance.constraints import (
     Constraint,
     ConstraintClass,
     ConstraintSpec,

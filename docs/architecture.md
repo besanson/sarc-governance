@@ -1,6 +1,6 @@
 # Architecture
 
-`sarc-kaos` implements the SARC runtime governance architecture from the
+`sarc-governance` implements the SARC runtime governance architecture from the
 SARC paper. It is a thin, framework-neutral library that interposes on
 every tool dispatch and enforces declarative constraints at three points
 around the call.
@@ -46,18 +46,18 @@ incompatible point is flagged by `audit_trace` as a placement discrepancy.
 
 | Component | Module | Role |
 |---|---|---|
-| `Constraint`, `ConstraintSpec` | `sarc_kaos.constraints` | Declarative governance unit; immutable, validated. |
-| `GovernanceToolset` | `sarc_kaos.governance` | Wraps any `ToolsetProtocol`; enforces PAG/ATM/PAA. |
-| `EscalationRouter` (ER) | `sarc_kaos.escalation` | Async dispatcher for fired escalation events. |
-| `TraceRecord`, `ActionEvent` | `sarc_kaos.trace` | Per-evaluation audit record. |
-| `audit_trace` | `sarc_kaos.audit` | Offline I1 (coverage) / I2 (placement) / I3 (response) checker. |
-| Predicate registry | `sarc_kaos.predicates` | Named, code-by-reference predicates loaded from YAML. |
-| Spec loader | `sarc_kaos.specs` | YAML/JSON → `ConstraintSpec`, no `eval`. |
-| CLI | `sarc_kaos.cli` | `validate` / `list-predicates` / `audit` / `demo`. |
+| `Constraint`, `ConstraintSpec` | `sarc_governance.constraints` | Declarative governance unit; immutable, validated. |
+| `GovernanceToolset` | `sarc_governance.governance` | Wraps any `ToolsetProtocol`; enforces PAG/ATM/PAA. |
+| `EscalationRouter` (ER) | `sarc_governance.escalation` | Async dispatcher for fired escalation events. |
+| `TraceRecord`, `ActionEvent` | `sarc_governance.trace` | Per-evaluation audit record. |
+| `audit_trace` | `sarc_governance.audit` | Offline I1 (coverage) / I2 (placement) / I3 (response) checker. |
+| Predicate registry | `sarc_governance.predicates` | Named, code-by-reference predicates loaded from YAML. |
+| Spec loader | `sarc_governance.specs` | YAML/JSON → `ConstraintSpec`, no `eval`. |
+| CLI | `sarc_governance.cli` | `validate` / `list-predicates` / `audit` / `demo`. |
 
 ## SARC is orchestration-agnostic
 
-SARC-KAOS is a *governance* layer, not an *orchestration* layer. It does
+SARC Governance is a *governance* layer, not an *orchestration* layer. It does
 not run the agent loop, plan tool calls, or talk to a model — it sits at
 the boundary where some other system has already decided which tool to
 call and is about to dispatch it. LangGraph, OpenAI tool calling, AWS
@@ -66,7 +66,7 @@ this boundary; SARC wraps the boundary the same way for each.
 
 ```
    model / planner          orchestration layer            governance layer            downstream
-  (whichever you use)   (LangGraph / OpenAI /            (sarc-kaos, this lib)        (DB / API / ERP /
+  (whichever you use)   (LangGraph / OpenAI /            (sarc-governance, this lib)        (DB / API / ERP /
                          Bedrock / your own loop)                                      payments / …)
         │                          │                              │                          │
         │  produces tool call      │                              │                          │
@@ -105,7 +105,7 @@ event-normalize / response-build pair around it. See
 [`integrations.md`](integrations.md) for the patterns and a side-by-side
 comparison.
 
-> SARC-KAOS does **not** import LangGraph, OpenAI, boto3 / Bedrock, or
+> SARC Governance does **not** import LangGraph, OpenAI, boto3 / Bedrock, or
 > any other agent framework. The library depends only on `pyyaml` plus
 > the standard library. Pick whichever orchestration fits the
 > deployment; the governance surface is identical.

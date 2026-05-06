@@ -8,8 +8,8 @@ import textwrap
 
 import pytest
 
-from sarc_kaos import load_spec, load_spec_from_string
-from sarc_kaos.constraints import ConstraintClass, EnforcementPoint, Response
+from sarc_governance import load_spec, load_spec_from_string
+from sarc_governance.constraints import ConstraintClass, EnforcementPoint, Response
 
 
 PROCUREMENT_YAML = textwrap.dedent(

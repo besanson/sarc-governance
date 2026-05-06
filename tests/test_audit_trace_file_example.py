@@ -5,8 +5,8 @@ from __future__ import annotations
 import json
 import pathlib
 
-from sarc_kaos import audit_trace
-from sarc_kaos.specs import load_spec
+from sarc_governance import audit_trace
+from sarc_governance.specs import load_spec
 
 EXAMPLE = pathlib.Path(__file__).resolve().parent.parent / "examples" / "audit_trace_file"
 

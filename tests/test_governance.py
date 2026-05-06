@@ -6,7 +6,7 @@ from typing import Any, Dict, List
 
 import pytest
 
-from sarc_kaos import (
+from sarc_governance import (
     Constraint,
     ConstraintSpec,
     ConstraintViolation,
@@ -14,7 +14,7 @@ from sarc_kaos import (
     GovernanceToolset,
     TraceRecord,
 )
-from sarc_kaos.constraints import ConstraintClass, EnforcementPoint, Response
+from sarc_governance.constraints import ConstraintClass, EnforcementPoint, Response
 
 from tests.conftest import (
     FakeMemory,

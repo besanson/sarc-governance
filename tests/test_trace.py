@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from sarc_kaos.constraints import ConstraintClass, EnforcementPoint, Response
-from sarc_kaos.trace import ActionEvent, TraceRecord, new_action_id
+from sarc_governance.constraints import ConstraintClass, EnforcementPoint, Response
+from sarc_governance.trace import ActionEvent, TraceRecord, new_action_id
 
 
 def _rec(**kwargs) -> TraceRecord:

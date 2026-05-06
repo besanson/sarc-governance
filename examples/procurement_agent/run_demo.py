@@ -23,7 +23,7 @@ import pathlib
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
-from sarc_kaos import (
+from sarc_governance import (
     GovernanceToolset,
     ConstraintViolation,
     EscalationRouter,

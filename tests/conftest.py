@@ -1,4 +1,4 @@
-"""Shared fixtures and helpers for the sarc_kaos test suite."""
+"""Shared fixtures and helpers for the sarc_governance test suite."""
 
 from __future__ import annotations
 
@@ -7,14 +7,14 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import pytest
 
-from sarc_kaos import (
+from sarc_governance import (
     Constraint,
     ConstraintSpec,
     EscalationRouter,
     GovernanceToolset,
     TraceRecord,
 )
-from sarc_kaos.constraints import ConstraintClass, EnforcementPoint, Response
+from sarc_governance.constraints import ConstraintClass, EnforcementPoint, Response
 
 
 # ---------------------------------------------------------------------------

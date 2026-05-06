@@ -7,7 +7,7 @@ from typing import Any, Dict, List
 
 import pytest
 
-from sarc_kaos import (
+from sarc_governance import (
     ConstraintViolation,
     GovernanceToolset,
     EscalationRouter,

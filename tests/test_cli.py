@@ -1,4 +1,4 @@
-"""Tests for the ``sarc-kaos`` CLI."""
+"""Tests for the ``sarc-governance`` CLI."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from contextlib import redirect_stderr, redirect_stdout
 
 import pytest
 
-from sarc_kaos.cli import build_parser, main
+from sarc_governance.cli import build_parser, main
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 SPEC_PROC = REPO_ROOT / "examples" / "procurement_agent" / "sarc_spec.yaml"

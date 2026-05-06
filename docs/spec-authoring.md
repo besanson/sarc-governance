@@ -2,7 +2,7 @@
 
 A constraint spec is a list of `Constraint` declarations. It can be
 authored in Python or loaded from YAML/JSON. The loader resolves
-`predicate` strings through the registry in `sarc_kaos.predicates`; no
+`predicate` strings through the registry in `sarc_governance.predicates`; no
 `eval` or `exec` is used.
 
 ## YAML schema
@@ -19,7 +19,7 @@ constraints:
 
 Required keys: `id`, `class`, `verif`, `response`, `predicate`. The
 `description` field is optional but recommended — it surfaces in
-`sarc-kaos validate` output.
+`sarc-governance validate` output.
 
 ## Class × point rules
 
@@ -60,16 +60,16 @@ on the enforcement point:
 | `ATM` | `tool`, `args`, `result`, `elapsed` |
 | `PAA` | `tool`, `args`, `result` |
 
-Built-in predicates live in `sarc_kaos.predicates`. List them with:
+Built-in predicates live in `sarc_governance.predicates`. List them with:
 
 ```bash
-sarc-kaos list-predicates
+sarc-governance list-predicates
 ```
 
 Register your own:
 
 ```python
-from sarc_kaos.predicates import register
+from sarc_governance.predicates import register
 
 @register("blocks_external_email")
 def _blocks_external_email(ctx):
@@ -96,7 +96,7 @@ calls.
 ## Validating from the command line
 
 ```bash
-sarc-kaos validate path/to/spec.yaml
+sarc-governance validate path/to/spec.yaml
 ```
 
 Prints a per-constraint table (id / class / point / response). Exits
@@ -118,7 +118,7 @@ a pre-merge gate on spec changes.
 For tests, you usually do not want to touch YAML at all:
 
 ```python
-from sarc_kaos import Constraint, ConstraintSpec
+from sarc_governance import Constraint, ConstraintSpec
 
 SPEC = ConstraintSpec(
     constraints=[

@@ -7,9 +7,9 @@ from typing import Any, Dict, List
 
 import pytest
 
-from sarc_kaos.constraints import ConstraintClass, EnforcementPoint, Response
-from sarc_kaos.escalation import EscalationRouter
-from sarc_kaos.trace import TraceRecord
+from sarc_governance.constraints import ConstraintClass, EnforcementPoint, Response
+from sarc_governance.escalation import EscalationRouter
+from sarc_governance.trace import TraceRecord
 
 
 def _rec(cid: str = "c1") -> TraceRecord:

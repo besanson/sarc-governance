@@ -14,7 +14,7 @@ schema only and is on by default.
 
 ## Trace shapes
 
-`audit_trace` (and `sarc-kaos audit`) accept two trace shapes and
+`audit_trace` (and `sarc-governance audit`) accept two trace shapes and
 auto-detect which is which:
 
 ### 1. Flat `TraceRecord` list
@@ -63,7 +63,7 @@ dump its events at the end of a run:
 
 ```python
 import json
-from sarc_kaos import GovernanceToolset, audit_trace
+from sarc_governance import GovernanceToolset, audit_trace
 
 # memory.governance_events(session_id) returns a list of TraceRecord dicts.
 trace = memory.governance_events(session_id)
@@ -76,7 +76,7 @@ that does exactly this.
 ## Auditing from the CLI
 
 ```bash
-sarc-kaos audit spec.yaml trace.json
+sarc-governance audit spec.yaml trace.json
 ```
 
 Exit codes:
@@ -100,12 +100,12 @@ See [`examples/audit_trace_file/`](../examples/audit_trace_file/README.md):
 
 ```bash
 # pass
-sarc-kaos audit examples/audit_trace_file/spec.yaml \
+sarc-governance audit examples/audit_trace_file/spec.yaml \
                 examples/audit_trace_file/trace_pass.json
 # audit: PASS  (no discrepancies)   -> exit 0
 
 # fail (placement + response + coverage)
-sarc-kaos audit examples/audit_trace_file/spec.yaml \
+sarc-governance audit examples/audit_trace_file/spec.yaml \
                 examples/audit_trace_file/trace_fail.json
 # audit: FAIL  (3 discrepancies)    -> exit 1
 ```
@@ -125,9 +125,9 @@ type.
 
 ```yaml
 # .github/workflows/governance.yml (illustrative)
-- run: sarc-kaos validate config/spec.yaml
+- run: sarc-governance validate config/spec.yaml
 - run: python scripts/run_smoke.py --dump trace.json
-- run: sarc-kaos audit config/spec.yaml trace.json
+- run: sarc-governance audit config/spec.yaml trace.json
 ```
 
 `validate` gates on spec syntax; `audit` gates on runtime conformance of a

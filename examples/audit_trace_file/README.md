@@ -1,6 +1,6 @@
 # Audit a SARC trace file
 
-This example shows how to use the `sarc-kaos audit` CLI to gate CI on the
+This example shows how to use the `sarc-governance audit` CLI to gate CI on the
 SARC conformance of a recorded run.
 
 ## Files
@@ -15,11 +15,11 @@ SARC conformance of a recorded run.
 ## Run it
 
 ```bash
-sarc-kaos audit examples/audit_trace_file/spec.yaml \
+sarc-governance audit examples/audit_trace_file/spec.yaml \
                 examples/audit_trace_file/trace_pass.json
 # audit: PASS  (no discrepancies)   — exit 0
 
-sarc-kaos audit examples/audit_trace_file/spec.yaml \
+sarc-governance audit examples/audit_trace_file/spec.yaml \
                 examples/audit_trace_file/trace_fail.json
 # audit: FAIL  (3 discrepancies)    — exit 1
 #   placement: 1
@@ -39,7 +39,7 @@ prevents PAA records from being emitted), pass `--allow-discrepancies` to
 print the report without exiting non-zero:
 
 ```bash
-sarc-kaos audit spec.yaml trace_fail.json --allow-discrepancies
+sarc-governance audit spec.yaml trace_fail.json --allow-discrepancies
 echo $?  # 0
 ```
 

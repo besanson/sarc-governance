@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run sarc-kaos audit against the bundled pass/fail traces and print exit codes.
+# Run sarc-governance audit against the bundled pass/fail traces and print exit codes.
 set -u
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -8,7 +8,7 @@ SPEC="$HERE/spec.yaml"
 run() {
     local label="$1" trace="$2"
     echo "=== $label ==="
-    sarc-kaos audit "$SPEC" "$trace"
+    sarc-governance audit "$SPEC" "$trace"
     echo "exit=$?"
     echo
 }

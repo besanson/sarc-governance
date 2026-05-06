@@ -91,7 +91,7 @@ If your context object already exposes `ctx.deps.memory` and
 overrides — `GovernanceToolset` will auto-detect them:
 
 ```python
-from sarc_kaos import GovernanceToolset
+from sarc_governance import GovernanceToolset
 governed = GovernanceToolset(wrapped=my_toolset, spec=spec)
 ```
 

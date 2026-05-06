@@ -109,7 +109,7 @@ call SARC.** SARC sits *inside the Lambda*, between the Bedrock event
 and the actual downstream system:
 
 ```python
-from sarc_kaos import GovernanceToolset, ConstraintViolation
+from sarc_governance import GovernanceToolset, ConstraintViolation
 
 class BedrockActionGroupHandler:
     def __init__(self, governed: GovernanceToolset, memory):
@@ -177,7 +177,7 @@ from your context object on every call.
 
 ## Honest about what is *not* here
 
-- `sarc-kaos` does **not** import or vendor any specific agent
+- `sarc-governance` does **not** import or vendor any specific agent
   framework. It works with whatever orchestration layer you pick because
   the integration surface is a single async method, not because we ship
   glue code per framework.

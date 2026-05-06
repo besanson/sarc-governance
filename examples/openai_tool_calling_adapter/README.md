@@ -38,8 +38,8 @@ Expected output (last block):
 
 ```python
 from openai import AsyncOpenAI
-from sarc_kaos import GovernanceToolset
-from sarc_kaos.specs import load_spec
+from sarc_governance import GovernanceToolset
+from sarc_governance.specs import load_spec
 
 client = AsyncOpenAI()
 governed = GovernanceToolset(

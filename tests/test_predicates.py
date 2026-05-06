@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from sarc_kaos.predicates import available, get, register
+from sarc_governance.predicates import available, get, register
 
 
 # ---------------------------------------------------------------------------

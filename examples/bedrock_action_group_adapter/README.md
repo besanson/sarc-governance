@@ -15,7 +15,7 @@ built by hand, and the "Lambda" is a plain Python function.
 ## Does Bedrock call SARC?
 
 **No.** Bedrock has its own action-group / runtime orchestration and does
-not depend on SARC. SARC-KAOS wraps the tool-dispatch boundary the same
+not depend on SARC. SARC Governance wraps the tool-dispatch boundary the same
 way it wraps any other async toolset: you put the `GovernanceToolset`
 between the framework event and the downstream system.
 
@@ -123,8 +123,8 @@ the demo we synthesize the tool name as `"<METHOD> <path>"` so the
 # lambda_function.py
 import asyncio
 
-from sarc_kaos import GovernanceToolset, EscalationRouter
-from sarc_kaos.specs import load_spec
+from sarc_governance import GovernanceToolset, EscalationRouter
+from sarc_governance.specs import load_spec
 
 from .bedrock_adapter import (  # your adapter module
     BedrockActionGroupHandler,

@@ -1,6 +1,6 @@
 # Production hardening
 
-`sarc-kaos` is a developer toolkit and reference implementation. Before
+`sarc-governance` is a developer toolkit and reference implementation. Before
 you put it on a production critical path, the following gaps need
 explicit decisions and engineering work. None of these is a SARC research
 question — they are operational concerns common to any policy-enforcement
@@ -53,7 +53,7 @@ The library has no concept of *who* is calling. Real deployments need:
 
 ## Policy authoring and approval
 
-`sarc-kaos validate` checks structure, not intent. A real lifecycle adds:
+`sarc-governance validate` checks structure, not intent. A real lifecycle adds:
 
 - Spec PRs with mandatory reviewers (compliance, security).
 - Static analysis: predicate complexity, blast radius if a constraint
@@ -111,10 +111,10 @@ governance overhead with synthetic workloads. Before production, run:
 A minimum gate set:
 
 ```yaml
-- run: sarc-kaos validate config/spec.yaml
+- run: sarc-governance validate config/spec.yaml
 - run: pytest
 - run: python scripts/run_smoke.py --dump trace.json
-- run: sarc-kaos audit config/spec.yaml trace.json
+- run: sarc-governance audit config/spec.yaml trace.json
 ```
 
 Beyond that: signed releases, dependency review, image attestation if
@@ -122,7 +122,7 @@ you ship the agent as a container.
 
 ## What this list is *not*
 
-This is not a roadmap for `sarc-kaos`. The library is intentionally
+This is not a roadmap for `sarc-governance`. The library is intentionally
 small. The items above are things every adopting team will need to
 decide and implement in their own infrastructure. The library exposes
 clean seams (`MemoryProtocol`, `EscalationHandler`, `memory_getter`,

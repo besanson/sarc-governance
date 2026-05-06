@@ -6,8 +6,8 @@ from typing import Any, Dict, List
 
 import pytest
 
-from sarc_kaos import audit_trace
-from sarc_kaos.constraints import (
+from sarc_governance import audit_trace
+from sarc_governance.constraints import (
     Constraint,
     ConstraintClass,
     ConstraintSpec,

@@ -49,6 +49,6 @@ purchase order events per episode drawn from a log-normal amount distribution
 (μ = 8.5, σ = 1.2 on log scale).
 
 The `sarc_eval.py` script encodes the same constraint logic as the
-`sarc_kaos` package but as a self-contained simulation.  The production
-package (`src/sarc_kaos/`) is the generalisable version that wraps real
+`sarc_governance` package but as a self-contained simulation.  The production
+package (`src/sarc_governance/`) is the generalisable version that wraps real
 toolsets.

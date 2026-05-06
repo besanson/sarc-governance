@@ -1,4 +1,4 @@
-# sarc-kaos
+# sarc-governance
 
 A runtime governance layer that wraps any async toolset and enforces declarative
 constraints (hard / soft / escalation) at three in-process points around every tool call.
@@ -20,11 +20,11 @@ constraints (hard / soft / escalation) at three in-process points around every t
 ## Command-line interface
 
 ```bash
-sarc-kaos validate examples/procurement_agent/sarc_spec.yaml
-sarc-kaos list-predicates
-sarc-kaos audit  examples/audit_trace_file/spec.yaml \
+sarc-governance validate examples/procurement_agent/sarc_spec.yaml
+sarc-governance list-predicates
+sarc-governance audit  examples/audit_trace_file/spec.yaml \
                   examples/audit_trace_file/trace_pass.json
-sarc-kaos demo procurement
+sarc-governance demo procurement
 ```
 
 `audit` exits non-zero on discrepancies (override with `--allow-discrepancies`),
@@ -35,10 +35,10 @@ trace schema.
 
 ## Framework-agnostic by design
 
-**`sarc-kaos` does not import any specific agent framework.** LangGraph, OpenAI,
+**`sarc-governance` does not import any specific agent framework.** LangGraph, OpenAI,
 boto3 / Bedrock, pydantic-ai, and similar libraries are all optional — none are
 required to be installed. The package is framework-neutral and depends only on
-`pyyaml` plus the standard library. SARC-KAOS is the *governance layer*;
+`pyyaml` plus the standard library. SARC Governance is the *governance layer*;
 orchestration is whatever you already use.
 
 What it does instead:
@@ -88,8 +88,8 @@ side-by-side comparison.
 ## Quickstart
 
 ```bash
-git clone https://github.com/besanson/sarc-kaos.git
-cd sarc-kaos
+git clone https://github.com/besanson/sarc-governance.git
+cd sarc-governance
 pip install -e ".[dev]"
 
 # Run the test suite
@@ -108,7 +108,7 @@ and a final SARC audit summary.
 
 ```python
 import asyncio
-from sarc_kaos import (
+from sarc_governance import (
     Constraint, ConstraintSpec, GovernanceToolset,
     EscalationRouter, ConstraintViolation,
 )
@@ -146,9 +146,9 @@ async def main():
 asyncio.run(main())
 ```
 
-A YAML version of the same spec is loadable via `sarc_kaos.specs.load_spec(path)`;
+A YAML version of the same spec is loadable via `sarc_governance.specs.load_spec(path)`;
 predicates referenced by name resolve through the built-in registry, and custom ones
-can be added with `sarc_kaos.predicates.register`.
+can be added with `sarc_governance.predicates.register`.
 
 ---
 
@@ -214,10 +214,10 @@ In each case the agent code is unchanged; only the `ConstraintSpec` differs.
 
 | Path | Contents |
 |---|---|
-| [`src/sarc_kaos/`](src/sarc_kaos/) | Core package: constraints, governance, escalation, audit, trace, specs, predicates, CLI |
+| [`src/sarc_governance/`](src/sarc_governance/) | Core package: constraints, governance, escalation, audit, trace, specs, predicates, CLI |
 | [`docs/`](docs/) | Architecture, spec authoring, audit, integrations, production-hardening guides |
 | [`examples/procurement_agent/`](examples/procurement_agent/README.md) | End-to-end demo with a mock ERP toolset and YAML spec |
-| [`examples/audit_trace_file/`](examples/audit_trace_file/README.md) | Spec + pass/fail trace JSON for the `sarc-kaos audit` CLI |
+| [`examples/audit_trace_file/`](examples/audit_trace_file/README.md) | Spec + pass/fail trace JSON for the `sarc-governance audit` CLI |
 | [`examples/human_escalation/`](examples/human_escalation/README.md) | approve / deny / timeout pattern for human-in-the-loop |
 | [`examples/langgraph_style_adapter/`](examples/langgraph_style_adapter/README.md) | Wrap a LangGraph-shaped tools node (no `langgraph` dependency) |
 | [`examples/openai_tool_calling_adapter/`](examples/openai_tool_calling_adapter/README.md) | Wrap OpenAI-style function dispatch (no `openai` dependency) |
@@ -253,7 +253,7 @@ python benchmarks/sarc_eval.py
 ## Paper
 
 The LaTeX source for the SARC paper is in [`paper/`](paper/README.md). The architecture
-described there maps 1:1 onto the modules in `src/sarc_kaos/`.
+described there maps 1:1 onto the modules in `src/sarc_governance/`.
 
 ---
 

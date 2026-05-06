@@ -40,8 +40,8 @@ messages produced: 3  blocked: 1
 from langgraph.graph import StateGraph
 from langchain_core.messages import ToolMessage
 
-from sarc_kaos import GovernanceToolset, ConstraintViolation
-from sarc_kaos.specs import load_spec
+from sarc_governance import GovernanceToolset, ConstraintViolation
+from sarc_governance.specs import load_spec
 
 governed = GovernanceToolset(wrapped=FunctionDispatchToolset(my_tools), spec=load_spec("spec.yaml"))
 

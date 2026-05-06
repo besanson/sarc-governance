@@ -21,7 +21,7 @@ import asyncio
 from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable, Dict, List, Optional
 
-from sarc_kaos import (
+from sarc_governance import (
     Constraint,
     ConstraintSpec,
     ConstraintViolation,
