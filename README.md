@@ -133,6 +133,16 @@ pip install -e . --no-build-isolation        # install package without re-fetchi
 pytest
 ```
 
+**No pip access at all?** If you cannot run pip in any form, skip the install entirely:
+
+```bash
+PYTHONPATH=src pytest
+```
+
+This requires `pytest` and `pytest-asyncio` to already be present in your Python
+environment. If `pytest-asyncio` is missing the async tests will error — install it
+first (`pip install pytest-asyncio>=0.23`) or your test run will be incomplete.
+
 No external services. No API keys. The procurement demo prints per-scenario outcomes
 and a final SARC audit summary.
 
@@ -307,11 +317,13 @@ for the full status mapping.
 ## Running the test suite
 
 ```bash
-pytest
+pytest                   # standard — requires pip install -e ".[dev]"
+PYTHONPATH=src pytest    # no-install fallback — requires pytest and pytest-asyncio in your environment
 ```
 
 `pytest-asyncio` is configured in `pyproject.toml` with `asyncio_mode = "auto"`, so
-async tests run without per-function decorators.
+async tests run without per-function decorators. **`pytest-asyncio` is required** — without
+it the async tests will error, not skip, and your run will be incomplete.
 
 ---
 
