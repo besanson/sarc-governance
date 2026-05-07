@@ -5,14 +5,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
-import pytest
 
 from sarc_governance import (
     Constraint,
     ConstraintSpec,
     EscalationRouter,
     GovernanceToolset,
-    TraceRecord,
 )
 from sarc_governance.constraints import ConstraintClass, EnforcementPoint, Response
 

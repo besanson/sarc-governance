@@ -330,9 +330,14 @@ async def run() -> None:
         )
         ctx = PAISContext(deps=deps)
 
+        esc_before = len(_escalation_log)
         try:
             result = await governed.call_tool(s.tool, s.args, ctx=ctx, tool=None)
-            tag, detail = "OK", str(result)[:60]
+            escalated = len(_escalation_log) > esc_before
+            if escalated:
+                tag, detail = "OK+ESC", str(result)[:60]
+            else:
+                tag, detail = "OK", str(result)[:60]
             ok += 1
         except ConstraintViolation as exc:
             tag = "BLOCKED"

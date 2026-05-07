@@ -35,7 +35,6 @@ import sys
 from typing import Any, Dict, List, Optional, Sequence
 
 from sarc_governance import audit_trace, predicates
-from sarc_governance.constraints import ConstraintSpec
 from sarc_governance.hashchain import verify_chain
 from sarc_governance.policy import diff_policies, inspect_policy
 from sarc_governance.specs import load_spec

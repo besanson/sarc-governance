@@ -29,8 +29,6 @@ jobs:
 
       - name: Lint (ruff)
         run: ruff check src tests
-        continue-on-error: true
 
       - name: Type check (mypy)
         run: mypy src/sarc_governance --ignore-missing-imports
-        continue-on-error: true

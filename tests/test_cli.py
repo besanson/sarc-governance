@@ -7,7 +7,6 @@ import json
 import pathlib
 from contextlib import redirect_stderr, redirect_stdout
 
-import pytest
 
 from sarc_governance.cli import build_parser, main
 
@@ -95,9 +94,9 @@ def test_list_predicates_default():
 def test_list_predicates_quiet():
     rc, out, _ = _run(["list-predicates", "-q"])
     assert rc == 0
-    lines = [l for l in out.splitlines() if l.strip()]
+    lines = [line for line in out.splitlines() if line.strip()]
     # No header line in quiet mode.
-    assert all(" -- " not in l for l in lines)
+    assert all(" -- " not in line for line in lines)
     assert "is_high_value_po" in lines
 
 

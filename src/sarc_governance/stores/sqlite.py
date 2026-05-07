@@ -73,6 +73,8 @@ class SQLiteTraceStore:
         if path != ":memory:":
             pathlib.Path(self._path_str).parent.mkdir(parents=True, exist_ok=True)
         self._conn = sqlite3.connect(self._path_str, check_same_thread=False)
+        if path != ":memory:":
+            self._conn.execute("PRAGMA journal_mode=WAL")
         self._conn.executescript(_SCHEMA)
         self._conn.commit()
         self._hash_chain = hash_chain

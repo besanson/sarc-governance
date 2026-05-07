@@ -10,7 +10,6 @@ from sarc_governance import (
     Constraint,
     ConstraintSpec,
     ConstraintViolation,
-    EscalationRouter,
     GovernanceToolset,
     TraceRecord,
 )
@@ -20,7 +19,6 @@ from tests.conftest import (
     FakeMemory,
     StubToolset,
     escalation_paa,
-    escalation_pag,
     hard_pag,
     make_governance,
     soft_paa,

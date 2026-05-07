@@ -31,7 +31,7 @@ either pass an ``ExecutionContext`` directly as ``ctx``, or attach one as
 from __future__ import annotations
 
 from dataclasses import dataclass, field, asdict
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
+from typing import Any, Dict, Mapping, Tuple
 
 
 @dataclass

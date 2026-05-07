@@ -45,12 +45,12 @@ import asyncio
 import logging
 import time
 from dataclasses import dataclass, field
-from typing import Any, Awaitable, Callable, Dict, List, Optional, Protocol, runtime_checkable
+from typing import Any, Callable, Dict, Optional, Protocol, runtime_checkable
 
 from sarc_governance.constraints import ConstraintClass, ConstraintSpec, EnforcementPoint, Response
 from sarc_governance.context import ExecutionContext
 from sarc_governance.escalation import EscalationRouter
-from sarc_governance.trace import TraceRecord, new_action_id
+from sarc_governance.trace import TraceRecord
 
 logger = logging.getLogger(__name__)
 

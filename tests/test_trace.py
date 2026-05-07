@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 
 from sarc_governance.constraints import ConstraintClass, EnforcementPoint, Response
 from sarc_governance.trace import ActionEvent, TraceRecord, new_action_id

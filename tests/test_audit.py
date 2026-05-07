@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
-import pytest
 
 from sarc_governance import audit_trace
 from sarc_governance.constraints import (

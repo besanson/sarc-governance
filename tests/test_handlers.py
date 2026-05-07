@@ -7,14 +7,12 @@ import json
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import Any, Dict, List
-from unittest.mock import patch
 
 import pytest
 
 from sarc_governance import (
     Constraint,
     ConstraintSpec,
-    ConstraintViolation,
     EscalationRouter,
     GovernanceToolset,
     WebhookEscalationHandler,
@@ -23,7 +21,7 @@ from sarc_governance.constraints import ConstraintClass, EnforcementPoint, Respo
 from sarc_governance.handlers import _safe_serialise
 from sarc_governance.trace import TraceRecord
 
-from tests.conftest import StubToolset, escalation_pag, hard_pag
+from tests.conftest import StubToolset, escalation_pag
 
 
 # ---------------------------------------------------------------------------
@@ -121,7 +119,6 @@ async def test_webhook_includes_execution_context_from_extra():
 @pytest.mark.asyncio
 async def test_webhook_sends_custom_headers():
     received_headers: List[Dict[str, str]] = []
-    srv = _CapturingServer()
 
     class _HeaderCapture(BaseHTTPRequestHandler):
         def do_POST(self):
@@ -260,8 +257,6 @@ async def test_parallel_calls_produce_unique_action_ids():
 @pytest.mark.asyncio
 async def test_action_ids_are_monotonically_increasing():
     """Action IDs must be strictly increasing under concurrent load."""
-    received_ids: List[str] = []
-
     class RecordingToolset:
         async def call_tool(self, name, args, ctx, tool):
             return {}
