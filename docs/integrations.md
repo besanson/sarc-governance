@@ -2,7 +2,7 @@
 
 `GovernanceToolset` wraps any object whose `call_tool(name, args, ctx, tool)`
 method is async. That makes integration with most agent frameworks a small
-adapter problem, not a fork. Below are four worked patterns.
+adapter problem, not a fork. Below are five worked patterns.
 
 ## The common shape
 
@@ -20,6 +20,7 @@ framework tool-call event   ──►   normalize to (name, args)           [ada
 
 | Framework | Tool-call event shape | Response shape | Adapter needed |
 |---|---|---|---|
+| **KAOS PAIS** | `DelegationToolset.call_tool(name, args, ctx, tool)` | same — no wrapping of response needed | `build_governed_toolset` in [`examples/kaos_pais_adapter/adapter.py`](../examples/kaos_pais_adapter/adapter.py) |
 | **LangGraph** | `ToolCall(name, args, id)` on graph state | `ToolMessage(tool_call_id, content, status)` | small `tools_node` |
 | **OpenAI tool calling** | `assistant.tool_calls[].function.{name, arguments}` | `{"role": "tool", "tool_call_id", "content"}` | `dispatch_tool_calls` |
 | **AWS Bedrock action group** | Lambda event with `actionGroup` + `function`/`apiPath` + `parameters`/`requestBody` + `sessionAttributes` | `{"messageVersion", "response": {functionResponse \| responseBody}, "sessionAttributes", ...}` | Lambda handler with `normalize_event` + `build_response` |
@@ -32,7 +33,79 @@ layer that already exposes an async `call_tool(name, args, ctx, tool)` method
 overlaps that signature) needs **no** adapter at all — just pass it to
 `GovernanceToolset(wrapped=...)`.
 
-## 1. LangGraph-style "tools node"
+## 1. KAOS PAIS (Kubernetes-native agent platform)
+
+[KAOS](https://github.com/axsaucedo/kaos) runs Pydantic AI agents on
+Kubernetes and routes every tool call — MCP tool calls and agent-to-agent
+delegations alike — through `DelegationToolset.call_tool` in
+`pais/tools.py`.  That signature already satisfies `ToolsetProtocol`, so
+`GovernanceToolset` wraps it with **zero adapter code**:
+
+```python
+from sarc_governance import GovernanceToolset
+from sarc_governance.specs import load_spec
+
+spec    = load_spec("/config/sarc_spec.yaml")   # mount as a K8s ConfigMap
+toolset = GovernanceToolset(
+    wrapped=DelegationToolset(sub_agents, memory, session_id),
+    spec=spec,
+)
+```
+
+KAOS's `Memory` class (`pais/memory.py`) already has the exact
+`async def add_event(session_id, event_type, content, metadata)` signature
+that `MemoryProtocol` requires, so governance trace records write into the
+same PAIS session memory as conversation history — no second storage system.
+
+`GovernanceToolset` also auto-detects `ctx.deps.memory` and
+`ctx.deps.session_id`, which is exactly the shape PAIS attaches via
+`RunContext[AgentDeps]`, so `memory_getter` and `session_id_getter` are not
+needed.
+
+For `ExecutionContext` attribution (agent name, tenant, roles stamped onto
+every trace record), use `build_governed_toolset` from the adapter:
+
+```python
+from examples.kaos_pais_adapter.adapter import build_governed_toolset
+
+toolset = build_governed_toolset(
+    delegation_toolset=DelegationToolset(...),
+    agent_name=settings.agent_name,     # $AGENT_NAME in PAIS
+    spec_path="/config/sarc_spec.yaml",
+    tenant_id=settings.tenant_id,
+    escalation_handler=my_async_handler,
+)
+```
+
+Mount `sarc_spec.yaml` as a Kubernetes ConfigMap on the PAIS pod; update it
+and redeploy to change policy without touching agent code.  Use
+`sarc-governance policy diff old.yaml new.yaml --exit-code` in CI to gate
+spec changes.
+
+**How `ConstraintViolation` surfaces in KAOS:** when a hard constraint fires,
+`GovernanceToolset` raises `ConstraintViolation` before the inner toolset is
+called.  In `pais/server.py`, catch it in the reasoning-loop result handler
+and return a tool error message so Pydantic AI can route around the block:
+
+```python
+try:
+    result = await toolset.call_tool(name, args, ctx, tool)
+except ConstraintViolation as exc:
+    result = {
+        "error": "blocked_by_governance",
+        "constraint_id": exc.constraint_id,
+        "point": exc.point.value,
+    }
+```
+
+Worked end-to-end example (runnable without a KAOS cluster):
+[`examples/kaos_pais_adapter/`](../examples/kaos_pais_adapter/adapter.py).
+
+```bash
+python examples/kaos_pais_adapter/run_demo.py
+```
+
+## 2. LangGraph-style "tools node"
 
 LangGraph models a workflow as a graph; tool calls run inside a node that
 consumes pending `ToolCall`s and emits `ToolMessage`s. Adapt the function
@@ -64,7 +137,7 @@ async def tools_node(state):
 Worked dependency-free demo:
 [`examples/langgraph_style_adapter/`](../examples/langgraph_style_adapter/README.md).
 
-## 2. OpenAI tool calling
+## 3. OpenAI tool calling
 
 OpenAI returns tool calls under `assistant.tool_calls`; the app dispatches
 them locally and appends `role: "tool"` messages. Wrap the local dispatch:
@@ -98,7 +171,7 @@ async def dispatch_tool_calls(governed, tool_calls):
 Worked dependency-free demo:
 [`examples/openai_tool_calling_adapter/`](../examples/openai_tool_calling_adapter/README.md).
 
-## 3. AWS Bedrock Agent action groups
+## 4. AWS Bedrock Agent action groups
 
 AWS Bedrock Agents dispatch tool calls to a Lambda action-group handler.
 The Lambda receives a JSON event with `actionGroup`, `function` (or `apiPath`
@@ -156,7 +229,7 @@ from `BedrockCallContext` (Bedrock's session shape is not the
 Worked dependency-free demo:
 [`examples/bedrock_action_group_adapter/`](../examples/bedrock_action_group_adapter/README.md).
 
-## 4. Generic async toolset
+## 5. Generic async toolset
 
 Any custom framework can be wrapped by writing a class with a single
 async `call_tool` method:

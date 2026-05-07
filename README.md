@@ -29,7 +29,7 @@ constraints (hard / soft / escalation) at three in-process points around every t
 - [Architecture](docs/architecture.md) — SARC loop, components, class × point compatibility.
 - [Spec authoring](docs/spec-authoring.md) — YAML schema, predicates, common mistakes.
 - [Audit traces](docs/audit-traces.md) — trace shapes, `audit_trace` semantics, CI workflow.
-- [Integrations](docs/integrations.md) — LangGraph-style, OpenAI tool calling, AWS Bedrock action groups, generic async toolsets.
+- [Integrations](docs/integrations.md) — KAOS PAIS, LangGraph-style, OpenAI tool calling, AWS Bedrock action groups, generic async toolsets.
 - [Pre-production checklist](docs/pre-production-checklist.md) — what now ships vs. what you still wire up.
 - [Policy lifecycle](docs/policy-lifecycle.md) — `PolicyMetadata`, checksum, diff, CI gating.
 - [Trace stores](docs/trace-stores.md) — Memory / JSONL / SQLite backends and the hash chain.
@@ -60,9 +60,9 @@ discrepancies, making them CI-friendly. See
 
 ## Framework-agnostic by design
 
-**`sarc-governance` does not import any specific agent framework.** LangGraph, OpenAI,
-boto3 / Bedrock, pydantic-ai, and similar libraries are all optional — none are
-required to be installed. The package is framework-neutral and depends only on
+**`sarc-governance` does not import any specific agent framework.** KAOS, LangGraph,
+OpenAI, boto3 / Bedrock, pydantic-ai, and similar libraries are all optional — none
+are required to be installed. The package is framework-neutral and depends only on
 `pyyaml` plus the standard library. SARC Governance is the *governance layer*;
 orchestration is whatever you already use.
 
@@ -70,10 +70,10 @@ What it does instead:
 
 - Defines two minimal `typing.Protocol` types — `ToolsetProtocol` (anything with an async
   `call_tool` method) and `MemoryProtocol` (anything with an async `add_event` method).
-- `GovernanceToolset` wraps **any** object that satisfies `ToolsetProtocol`. LangGraph
-  tool nodes, OpenAI tool-calling dispatch, AWS Bedrock action-group Lambdas, and
-  arbitrary in-house async toolsets each need (at most) a small adapter that
-  normalizes the framework's tool-call event into `(name, args)`.
+- `GovernanceToolset` wraps **any** object that satisfies `ToolsetProtocol`. KAOS's
+  `DelegationToolset`, LangGraph tool nodes, OpenAI tool-calling dispatch, AWS Bedrock
+  action-group Lambdas, and arbitrary in-house async toolsets each need (at most) a
+  small adapter that normalizes the framework's tool-call event into `(name, args)`.
 - Auto-detects `ctx.deps.memory` and `ctx.deps.session_id` for trace persistence
   when the orchestration layer exposes that shape, and falls back to user-supplied
   `memory_getter` / `session_id_getter` callables when the agent framework exposes
@@ -123,6 +123,25 @@ pytest
 # Run the procurement demo (six scenarios, audit summary at the end)
 python examples/procurement_agent/run_demo.py
 ```
+
+**Restricted network / corporate proxy?** If your environment blocks PyPI during
+the build step, use the fallback path:
+
+```bash
+pip install -r requirements-dev.txt          # install dev deps via your mirror/cache
+pip install -e . --no-build-isolation        # install package without re-fetching build tools
+pytest
+```
+
+**No pip access at all?** If you cannot run pip in any form, skip the install entirely:
+
+```bash
+PYTHONPATH=src pytest
+```
+
+This requires `pytest` and `pytest-asyncio` to already be present in your Python
+environment. If `pytest-asyncio` is missing the async tests will error — install it
+first (`pip install pytest-asyncio>=0.23`) or your test run will be incomplete.
 
 No external services. No API keys. The procurement demo prints per-scenario outcomes
 and a final SARC audit summary.
@@ -284,6 +303,8 @@ for the full status mapping.
 | [`examples/audit_trace_file/`](examples/audit_trace_file/README.md) | Spec + pass/fail trace JSON for the `sarc-governance audit` CLI |
 | [`examples/preproduction_trace_store/`](examples/preproduction_trace_store/README.md) | SQLite trace store + hash chain + policy diff demo |
 | [`examples/human_escalation/`](examples/human_escalation/README.md) | approve / deny / timeout pattern for human-in-the-loop |
+| [`examples/multi_agent_governed/`](examples/multi_agent_governed/run_demo.py) | Two governed agents chained — coordinator + validator with independent specs; shows constraint propagation across an agent boundary |
+| [`examples/kaos_pais_adapter/`](examples/kaos_pais_adapter/adapter.py) | Adapter for [KAOS](https://github.com/axsaucedo/kaos) — wraps `DelegationToolset`, wires PAIS session memory as the trace store (no `pais` dependency to run the example) |
 | [`examples/langgraph_style_adapter/`](examples/langgraph_style_adapter/README.md) | Wrap a LangGraph-shaped tools node (no `langgraph` dependency) |
 | [`examples/openai_tool_calling_adapter/`](examples/openai_tool_calling_adapter/README.md) | Wrap OpenAI-style function dispatch (no `openai` dependency) |
 | [`examples/bedrock_action_group_adapter/`](examples/bedrock_action_group_adapter/README.md) | Wrap an AWS Bedrock Agent action-group Lambda handler (no `boto3` dependency) |
@@ -296,11 +317,13 @@ for the full status mapping.
 ## Running the test suite
 
 ```bash
-pytest
+pytest                   # standard — requires pip install -e ".[dev]"
+PYTHONPATH=src pytest    # no-install fallback — requires pytest and pytest-asyncio in your environment
 ```
 
 `pytest-asyncio` is configured in `pyproject.toml` with `asyncio_mode = "auto"`, so
-async tests run without per-function decorators.
+async tests run without per-function decorators. **`pytest-asyncio` is required** — without
+it the async tests will error, not skip, and your run will be incomplete.
 
 ---
 

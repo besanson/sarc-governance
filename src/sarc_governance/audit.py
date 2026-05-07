@@ -27,7 +27,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from sarc_governance.constraints import ConstraintSpec, is_compatible, EnforcementPoint, ConstraintClass
+from sarc_governance.constraints import Constraint, ConstraintSpec, is_compatible, EnforcementPoint
 
 
 # ---------------------------------------------------------------------------
@@ -114,8 +114,8 @@ def _audit_flat(
 
         for rec in records:
             cid = rec["constraint_id"]
-            c = constraints.get(cid)
-            if c is None:
+            matched: Optional[Constraint] = constraints.get(cid)
+            if matched is None:
                 discrepancies.append(
                     _disc(
                         action_id,
@@ -135,26 +135,26 @@ def _audit_flat(
                     _disc(action_id, cid, "placement", f"Unknown point: {raw_point!r}")
                 )
                 continue
-            if not is_compatible(c.klass, point):
+            if not is_compatible(matched.klass, point):
                 discrepancies.append(
                     _disc(
                         action_id,
                         cid,
                         "placement",
-                        f"Constraint class={c.klass.value!r} evaluated at incompatible point {point.value!r}.",
+                        f"Constraint class={matched.klass.value!r} evaluated at incompatible point {point.value!r}.",
                     )
                 )
 
             # I3: response.
             if rec.get("fired"):
                 rec_resp = rec.get("response", "")
-                if rec_resp != c.response.value:
+                if rec_resp != matched.response.value:
                     discrepancies.append(
                         _disc(
                             action_id,
                             cid,
                             "response",
-                            f"Fired constraint used response {rec_resp!r}; spec requires {c.response.value!r}.",
+                            f"Fired constraint used response {rec_resp!r}; spec requires {matched.response.value!r}.",
                         )
                     )
 
@@ -178,8 +178,6 @@ def _audit_action_level(
 
     for i, rec in enumerate(trace):
         action_id = rec.get("action_id", str(i))
-        state = rec.get("state", {})
-        action = rec.get("action", {})
         evaluated_list = rec.get("evaluated", [])
         evaluated = {e["id"]: e for e in evaluated_list}
 
@@ -200,8 +198,8 @@ def _audit_action_level(
                 )
 
         for cid, ev in evaluated.items():
-            c = constraints.get(cid)
-            if c is None:
+            matched: Optional[Constraint] = constraints.get(cid)
+            if matched is None:
                 discrepancies.append(
                     _disc(
                         action_id,
@@ -228,24 +226,24 @@ def _audit_action_level(
                     )
                 )
                 continue
-            if not is_compatible(c.klass, point):
+            if not is_compatible(matched.klass, point):
                 discrepancies.append(
                     _disc(
                         action_id,
                         cid,
                         "placement",
-                        f"Constraint class={c.klass.value!r} evaluated at incompatible point {point.value!r}.",
+                        f"Constraint class={matched.klass.value!r} evaluated at incompatible point {point.value!r}.",
                     )
                 )
 
             # I3: response.
-            if ev.get("fired") and ev.get("response") != c.response.value:
+            if ev.get("fired") and ev.get("response") != matched.response.value:
                 discrepancies.append(
                     _disc(
                         action_id,
                         cid,
                         "response",
-                        f"Fired constraint used response {ev['response']!r}; spec requires {c.response.value!r}.",
+                        f"Fired constraint used response {ev['response']!r}; spec requires {matched.response.value!r}.",
                     )
                 )
 

@@ -7,11 +7,9 @@ import json
 import pathlib
 from contextlib import redirect_stderr, redirect_stdout
 
-import pytest
 
 from sarc_governance.cli import main
 from sarc_governance import (
-    JSONLTraceStore,
     SQLiteTraceStore,
     chain_records,
 )

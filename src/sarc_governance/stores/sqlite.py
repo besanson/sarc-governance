@@ -19,6 +19,7 @@ from __future__ import annotations
 import json
 import pathlib
 import sqlite3
+import threading
 from typing import Any, Dict, Iterator, List, Optional
 
 from sarc_governance.hashchain import GENESIS_PREV_HASH, append_record
@@ -54,18 +55,30 @@ class SQLiteTraceStore:
         Opt in to per-record tamper-evident hash chaining. When the store
         is opened on an existing file with chained data, the most recent
         ``chain_hash`` is recovered.
+
+    Thread safety
+    -------------
+    ``check_same_thread=False`` allows the connection to be shared across
+    threads (e.g. an async event loop and a background writer).  A
+    ``threading.Lock`` serialises all ``append`` calls so that
+    ``_last_chain_hash`` is never read/written concurrently and SQLite
+    writes are serialised at the application level as well as the DB level.
+    Reads (``list``, ``iter_records``, ``export_jsonl``) are not locked
+    because SQLite's WAL mode provides consistent reads; use a single
+    ``SQLiteTraceStore`` instance per file.
     """
 
     def __init__(self, path: Any, *, hash_chain: bool = False) -> None:
         self._path_str = str(path)
         if path != ":memory:":
             pathlib.Path(self._path_str).parent.mkdir(parents=True, exist_ok=True)
-        # ``check_same_thread=False`` so a store can be passed to async
-        # callers running on different threads (still single-writer).
         self._conn = sqlite3.connect(self._path_str, check_same_thread=False)
+        if path != ":memory:":
+            self._conn.execute("PRAGMA journal_mode=WAL")
         self._conn.executescript(_SCHEMA)
         self._conn.commit()
         self._hash_chain = hash_chain
+        self._write_lock = threading.Lock()
         self._last_chain_hash = GENESIS_PREV_HASH
         if hash_chain:
             self._last_chain_hash = self._recover_last_hash()
@@ -91,36 +104,37 @@ class SQLiteTraceStore:
         d = to_dict(record)
         if session_id is not None and "session_id" not in d:
             d["session_id"] = session_id
-        if self._hash_chain:
-            d = append_record(d, prev_chain_hash=self._last_chain_hash)
-            self._last_chain_hash = d["chain_hash"]
-        sid = d.get("session_id")
-        if sid is None:
-            extra = d.get("extra", {})
-            ec = extra.get("execution_context") if isinstance(extra, dict) else None
-            if isinstance(ec, dict):
-                sid = ec.get("session_id")
-        payload = json.dumps(d, sort_keys=True)
-        self._conn.execute(
-            """
-            INSERT INTO trace_records
-                (session_id, action_id, constraint_id, point, ts, payload,
-                 prev_hash, record_hash, chain_hash)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                sid,
-                d.get("action_id"),
-                d.get("constraint_id"),
-                d.get("point"),
-                d.get("timestamp"),
-                payload,
-                d.get("prev_hash"),
-                d.get("record_hash"),
-                d.get("chain_hash"),
-            ),
-        )
-        self._conn.commit()
+        with self._write_lock:
+            if self._hash_chain:
+                d = append_record(d, prev_chain_hash=self._last_chain_hash)
+                self._last_chain_hash = d["chain_hash"]
+            sid = d.get("session_id")
+            if sid is None:
+                extra = d.get("extra", {})
+                ec = extra.get("execution_context") if isinstance(extra, dict) else None
+                if isinstance(ec, dict):
+                    sid = ec.get("session_id")
+            payload = json.dumps(d, sort_keys=True)
+            self._conn.execute(
+                """
+                INSERT INTO trace_records
+                    (session_id, action_id, constraint_id, point, ts, payload,
+                     prev_hash, record_hash, chain_hash)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    sid,
+                    d.get("action_id"),
+                    d.get("constraint_id"),
+                    d.get("point"),
+                    d.get("timestamp"),
+                    payload,
+                    d.get("prev_hash"),
+                    d.get("record_hash"),
+                    d.get("chain_hash"),
+                ),
+            )
+            self._conn.commit()
 
     def list(self, session_id: Optional[str] = None) -> List[Dict[str, Any]]:
         return list(self.iter_records(session_id=session_id))

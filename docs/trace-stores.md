@@ -95,6 +95,156 @@ sarc-governance trace export /var/log/sarc/trace.sqlite trace.jsonl \
 sarc-governance trace verify-chain trace.jsonl
 ```
 
+## Extending to multi-writer backends
+
+The bundled stores are single-process. When you need multiple PAIS pods, a
+separate audit service, or a data-warehouse sink, implement `TraceStore` over
+your chosen backend. The protocol is five methods:
+
+```python
+from sarc_governance.stores import TraceStore   # typing.Protocol
+```
+
+### Postgres (psycopg2 / psycopg3)
+
+```python
+import json
+from typing import Any, Dict, Iterator, List, Optional
+import psycopg2
+
+class PostgresTraceStore:
+    """Append-only Postgres-backed trace store.
+
+    CREATE TABLE sarc_traces (
+        id            BIGSERIAL PRIMARY KEY,
+        session_id    TEXT,
+        action_id     TEXT,
+        constraint_id TEXT,
+        point         TEXT,
+        inserted_at   TIMESTAMPTZ DEFAULT now(),
+        record        JSONB NOT NULL
+    );
+    CREATE INDEX ON sarc_traces (session_id);
+    CREATE INDEX ON sarc_traces (action_id);
+    """
+
+    def __init__(self, dsn: str) -> None:
+        self._conn = psycopg2.connect(dsn)
+        self._conn.autocommit = True
+
+    def append(self, record: Any, *, session_id: Optional[str] = None) -> None:
+        d = record.to_dict() if hasattr(record, "to_dict") else dict(record)
+        sid = session_id or d.get("session_id") or (
+            (d.get("extra") or {}).get("execution_context", {}).get("session_id")
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO sarc_traces (session_id, action_id, constraint_id, point, record)"
+                " VALUES (%s, %s, %s, %s, %s)",
+                (sid, d.get("action_id"), d.get("constraint_id"),
+                 d.get("point"), json.dumps(d)),
+            )
+
+    def list(self, session_id: Optional[str] = None) -> List[Dict[str, Any]]:
+        return list(self.iter_records(session_id))
+
+    def iter_records(self, session_id: Optional[str] = None) -> Iterator[Dict[str, Any]]:
+        with self._conn.cursor() as cur:
+            if session_id:
+                cur.execute(
+                    "SELECT record FROM sarc_traces WHERE session_id = %s ORDER BY id",
+                    (session_id,),
+                )
+            else:
+                cur.execute("SELECT record FROM sarc_traces ORDER BY id")
+            for (row,) in cur:
+                yield row  # psycopg2 returns JSONB as dict already
+
+    def export_jsonl(self, path: Any, *, session_id: Optional[str] = None) -> int:
+        import pathlib, json as _json
+        records = list(self.iter_records(session_id))
+        pathlib.Path(path).write_text(
+            "\n".join(_json.dumps(r) for r in records), encoding="utf-8"
+        )
+        return len(records)
+
+    def close(self) -> None:
+        self._conn.close()
+```
+
+Wire it in the same way as the bundled stores:
+
+```python
+class StoreBackedMemory:
+    def __init__(self, store): self._store = store
+    async def add_event(self, session_id, event_type, content, metadata=None):
+        if event_type == "governance_event":
+            self._store.append(content, session_id=session_id)
+
+memory = StoreBackedMemory(PostgresTraceStore("postgresql://user:pass@db/sarc"))
+governed = GovernanceToolset(wrapped=toolset, spec=spec,
+                             memory_getter=lambda _: memory,
+                             session_id_getter=lambda ctx: ctx.deps.session_id)
+```
+
+### Redis (redis-py / aioredis)
+
+Redis Streams give you a durable, multi-writer, ordered log. Each governance
+event is an entry on a per-session stream.
+
+```python
+import json
+from typing import Any, Dict, Iterator, List, Optional
+import redis
+
+class RedisTraceStore:
+    """Redis Streams-backed trace store.
+
+    Each session gets its own stream: ``sarc:traces:{session_id}``.
+    A global index stream ``sarc:traces:*`` holds all events for
+    cross-session queries (fan-out on write).
+    """
+
+    def __init__(self, client: redis.Redis, ttl_seconds: int = 86400 * 30) -> None:
+        self._r = client
+        self._ttl = ttl_seconds
+
+    def _stream_key(self, session_id: Optional[str]) -> str:
+        return f"sarc:traces:{session_id or '_global'}"
+
+    def append(self, record: Any, *, session_id: Optional[str] = None) -> None:
+        d = record.to_dict() if hasattr(record, "to_dict") else dict(record)
+        sid = session_id or d.get("session_id") or "_global"
+        key = self._stream_key(sid)
+        self._r.xadd(key, {"record": json.dumps(d)})
+        if self._ttl:
+            self._r.expire(key, self._ttl)
+
+    def list(self, session_id: Optional[str] = None) -> List[Dict[str, Any]]:
+        return list(self.iter_records(session_id))
+
+    def iter_records(self, session_id: Optional[str] = None) -> Iterator[Dict[str, Any]]:
+        key = self._stream_key(session_id)
+        entries = self._r.xrange(key)          # [(id, {b"record": b"..."}), ...]
+        for _, fields in entries:
+            yield json.loads(fields[b"record"])
+
+    def export_jsonl(self, path: Any, *, session_id: Optional[str] = None) -> int:
+        import pathlib, json as _json
+        records = list(self.iter_records(session_id))
+        pathlib.Path(path).write_text(
+            "\n".join(_json.dumps(r) for r in records), encoding="utf-8"
+        )
+        return len(records)
+
+    def close(self) -> None:
+        self._r.close()
+```
+
+Both adapters satisfy `TraceStore` structurally — no inheritance needed.
+`sarc-governance trace verify-chain` works on any exported JSONL regardless
+of which backend produced it.
+
 ## Deciding between JSONL and SQLite
 
 - **JSONL** is simpler and `jq`-friendly but has no native filtering;
