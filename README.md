@@ -124,6 +124,15 @@ pytest
 python examples/procurement_agent/run_demo.py
 ```
 
+**Restricted network / corporate proxy?** If your environment blocks PyPI during
+the build step, use the fallback path:
+
+```bash
+pip install -r requirements-dev.txt          # install dev deps via your mirror/cache
+pip install -e . --no-build-isolation        # install package without re-fetching build tools
+pytest
+```
+
 No external services. No API keys. The procurement demo prints per-scenario outcomes
 and a final SARC audit summary.
 

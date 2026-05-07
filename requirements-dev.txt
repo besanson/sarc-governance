@@ -1,0 +1,15 @@
+# Development dependencies for sarc-governance.
+#
+# Use this file if your environment cannot fetch from PyPI during `pip install -e .[dev]`
+# (e.g. corporate proxy, air-gapped network, restricted CI):
+#
+#   pip install -r requirements-dev.txt   # install dev deps from a local mirror/cache
+#   pip install -e . --no-build-isolation # install the package without re-fetching build tools
+#
+# Versions are the minimum bounds from pyproject.toml — install whatever your
+# mirror provides that satisfies these constraints.
+
+pyyaml>=6.0
+pytest>=8.0
+pytest-asyncio>=0.23
+black>=24.0
