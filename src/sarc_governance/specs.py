@@ -170,7 +170,59 @@ def _parse_constraint(
     )
 
 
+def safe_load_spec(source: Union[str, pathlib.Path]) -> ConstraintSpec:
+    """Load a ``ConstraintSpec`` from a YAML/JSON file — registry predicates only.
+
+    This is the recommended loading path for production deployments.
+
+    Differences from :func:`load_spec`:
+
+    - Does **not** accept ``extra_predicates``.  Every predicate must be
+      registered in the global registry via
+      :func:`sarc_governance.predicates.register` before this call.
+    - Does **not** accept raw dicts.  The source must be a file path so that
+      specs are versioned files (ConfigMaps, git-tracked YAML) rather than
+      strings assembled at runtime.
+
+    If a predicate name in the file is not in the registry, ``ValueError``
+    is raised immediately — at load time, not at the first evaluation.
+
+    Parameters
+    ----------
+    source:
+        Path to a ``.yaml`` / ``.yml`` / ``.json`` spec file.
+
+    Raises
+    ------
+    TypeError:
+        If *source* is a dict rather than a path.
+    FileNotFoundError:
+        If the path does not exist.
+    ValueError:
+        If the spec is malformed or references an unknown predicate.
+
+    Examples
+    --------
+    In a KAOS PAIS pod (spec mounted as a ConfigMap)::
+
+        spec = safe_load_spec("/config/sarc_spec.yaml")
+        toolset = build_governed_toolset(delegation_toolset, spec=spec, ...)
+
+    In CI (verifying a spec before promoting)::
+
+        sarc-governance validate config/sarc_spec.yaml   # calls safe_load_spec internally
+    """
+    if isinstance(source, dict):
+        raise TypeError(
+            "safe_load_spec does not accept raw dicts. "
+            "Write a YAML/JSON file, reference predicates by name, and pass the path. "
+            "Use load_spec(..., extra_predicates=...) in trusted test contexts only."
+        )
+    return load_spec(pathlib.Path(source))
+
+
 __all__ = [
     "load_spec",
     "load_spec_from_string",
+    "safe_load_spec",
 ]

@@ -284,6 +284,7 @@ for the full status mapping.
 | [`examples/audit_trace_file/`](examples/audit_trace_file/README.md) | Spec + pass/fail trace JSON for the `sarc-governance audit` CLI |
 | [`examples/preproduction_trace_store/`](examples/preproduction_trace_store/README.md) | SQLite trace store + hash chain + policy diff demo |
 | [`examples/human_escalation/`](examples/human_escalation/README.md) | approve / deny / timeout pattern for human-in-the-loop |
+| [`examples/multi_agent_governed/`](examples/multi_agent_governed/run_demo.py) | Two governed agents chained — coordinator + validator with independent specs; shows constraint propagation across an agent boundary |
 | [`examples/kaos_pais_adapter/`](examples/kaos_pais_adapter/adapter.py) | Adapter for [KAOS](https://github.com/axsaucedo/kaos) — wraps `DelegationToolset`, wires PAIS session memory as the trace store (no `pais` dependency to run the example) |
 | [`examples/langgraph_style_adapter/`](examples/langgraph_style_adapter/README.md) | Wrap a LangGraph-shaped tools node (no `langgraph` dependency) |
 | [`examples/openai_tool_calling_adapter/`](examples/openai_tool_calling_adapter/README.md) | Wrap OpenAI-style function dispatch (no `openai` dependency) |

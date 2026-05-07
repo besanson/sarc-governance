@@ -23,7 +23,9 @@ The library does **not** protect against:
    process. There is no sandbox.
 2. **A spec author who can register a malicious predicate.** Predicates
    are arbitrary Python; the predicate registry is loaded at import
-   time.
+   time. **Mitigation**: use `safe_load_spec` (see below) so specs loaded
+   at runtime can only reference predicates already in the registry — no
+   callable injection from untrusted config paths.
 3. **Storage tampering.** The hash chain is *tamper-evident* — an
    attacker with write access can rebuild the chain after editing. For
    tamper-proofness you need write-once / append-only storage or an
@@ -75,6 +77,32 @@ The runtime is conservative on the side of safety. The contract is:
   correlation.
 - **Approval enforcement.** `PolicyMetadata.approval_status` is a
   string. CI/CD enforces what `approved` means.
+
+## `safe_load_spec` — the recommended production loading path
+
+`load_spec` accepts an `extra_predicates` dict that allows application code
+to inject arbitrary callables alongside a YAML file. This is useful in tests
+but is a callable-injection vector in production.
+
+`safe_load_spec(path)` is the narrower alternative:
+
+- Accepts only file paths (not raw dicts assembled at runtime).
+- Does not accept `extra_predicates`.
+- All predicate names must be in the global registry before the call.
+
+```python
+from sarc_governance import safe_load_spec
+from sarc_governance.predicates import register
+
+@register("my_predicate")
+def my_predicate(ctx): ...     # registered at import time, not at load time
+
+spec = safe_load_spec("/config/sarc_spec.yaml")   # only registry predicates
+```
+
+Use `safe_load_spec` everywhere your spec comes from a ConfigMap, an external
+config system, or any path that is not your own reviewed application code.
+Reserve `load_spec(..., extra_predicates=...)` for tests and trusted tooling.
 
 ## When to escalate the threat model
 
