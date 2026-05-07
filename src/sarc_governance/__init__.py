@@ -67,6 +67,7 @@ from sarc_governance.hashchain import (
     chain_records,
     verify_chain,
 )
+from sarc_governance.handlers import WebhookEscalationHandler
 from sarc_governance.stores import (
     JSONLTraceStore,
     MemoryTraceStore,
@@ -96,6 +97,7 @@ __all__ = [
     # escalation
     "EscalationHandler",
     "EscalationRouter",
+    "WebhookEscalationHandler",
     # trace
     "ActionEvent",
     "TraceRecord",
