@@ -8,7 +8,7 @@ import textwrap
 
 import pytest
 
-from sarc_governance import load_spec, load_spec_from_string
+from sarc_governance import load_spec, load_spec_from_string, safe_load_spec
 from sarc_governance.constraints import ConstraintClass, EnforcementPoint, Response
 
 
@@ -192,3 +192,66 @@ def test_procurement_spec_predicates_callable():
     ctx_no = {"tool": "erp.create_po", "args": {"amount": 100}}
     assert high_value_c.predicate(ctx_match) is True
     assert high_value_c.predicate(ctx_no) is False
+
+
+# ===========================================================================
+# safe_load_spec
+# ===========================================================================
+
+
+def test_safe_load_spec_loads_from_file(tmp_path: pathlib.Path):
+    """safe_load_spec loads a valid YAML file using only registry predicates."""
+    spec_file = tmp_path / "spec.yaml"
+    spec_file.write_text(
+        "constraints:\n"
+        "  - id: ch1\n"
+        "    class: hard\n"
+        "    verif: PAG\n"
+        "    response: block_or_escalate\n"
+        "    predicate: is_high_value_po\n"
+    )
+    spec = safe_load_spec(spec_file)
+    assert len(spec) == 1
+    assert spec.by_id("ch1") is not None
+
+
+def test_safe_load_spec_rejects_dict():
+    """safe_load_spec must not accept a raw dict."""
+    with pytest.raises(TypeError, match="does not accept raw dicts"):
+        safe_load_spec({"constraints": []})  # type: ignore[arg-type]
+
+
+def test_safe_load_spec_unknown_predicate_raises(tmp_path: pathlib.Path):
+    """safe_load_spec raises ValueError when a predicate is not in the registry."""
+    spec_file = tmp_path / "spec.yaml"
+    spec_file.write_text(
+        "constraints:\n"
+        "  - id: ch1\n"
+        "    class: hard\n"
+        "    verif: PAG\n"
+        "    response: block_or_escalate\n"
+        "    predicate: not_a_real_predicate_xyz\n"
+    )
+    with pytest.raises(ValueError, match="not_a_real_predicate_xyz"):
+        safe_load_spec(spec_file)
+
+
+def test_safe_load_spec_file_not_found():
+    with pytest.raises(FileNotFoundError):
+        safe_load_spec("/no/such/file.yaml")
+
+
+def test_safe_load_spec_no_extra_predicates_param(tmp_path: pathlib.Path):
+    """safe_load_spec has no extra_predicates parameter — verify at call time."""
+    spec_file = tmp_path / "spec.yaml"
+    spec_file.write_text(
+        "constraints:\n"
+        "  - id: ch1\n"
+        "    class: hard\n"
+        "    verif: PAG\n"
+        "    response: block_or_escalate\n"
+        "    predicate: is_high_value_po\n"
+    )
+    import inspect
+    sig = inspect.signature(safe_load_spec)
+    assert "extra_predicates" not in sig.parameters

@@ -41,6 +41,7 @@ Implement ``ToolsetProtocol`` and pass an instance as ``wrapped``.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
 from dataclasses import dataclass, field
@@ -141,6 +142,7 @@ class GovernanceToolset:
     context_getter: Optional[Callable[[Any], Optional[ExecutionContext]]] = field(default=None)
     stamp_context: bool = field(default=True)
     _action_seq: int = field(default=0, repr=False, compare=False)
+    _action_lock: asyncio.Lock = field(default_factory=asyncio.Lock, repr=False, compare=False)
 
     # ------------------------------------------------------------------
     # Public call_tool — the single entry point
@@ -167,7 +169,7 @@ class GovernanceToolset:
         tool:
             Framework tool descriptor.  Passed unchanged to the inner toolset.
         """
-        action_id = self._next_action_id()
+        action_id = await self._next_action_id()
         execution_context = self._resolve_context(ctx)
         pag_ctx: Dict[str, Any] = {"tool": name, "args": tool_args}
         if execution_context is not None and not execution_context.is_empty():
@@ -260,9 +262,10 @@ class GovernanceToolset:
     # Internals
     # ------------------------------------------------------------------
 
-    def _next_action_id(self) -> str:
-        self._action_seq += 1
-        return f"act-{self._action_seq}"
+    async def _next_action_id(self) -> str:
+        async with self._action_lock:
+            self._action_seq += 1
+            return f"act-{self._action_seq}"
 
     def _stamp(self, ec: Optional[ExecutionContext]) -> Dict[str, Any]:
         """Return a fresh extra-dict containing the execution context, or empty."""
