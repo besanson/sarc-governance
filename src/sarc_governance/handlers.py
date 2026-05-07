@@ -106,8 +106,6 @@ class WebhookEscalationHandler:
             ec = record.extra.get("execution_context")
             if ec:
                 payload["execution_context"] = ec
-        # Include the predicate context (tool, args, result, elapsed, …)
-        # but strip the execution_context key to avoid duplication.
         predicate_ctx = {k: v for k, v in ctx.items() if k != "execution_context"}
         if predicate_ctx:
             payload["predicate_context"] = _safe_serialise(predicate_ctx)
@@ -119,9 +117,16 @@ class WebhookEscalationHandler:
             method="POST",
             headers={"Content-Type": "application/json", **self.headers},
         )
+
+        timeout = self.timeout
+
+        def _send() -> int:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                return resp.status
+
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
-                status = resp.status
+            import asyncio
+            status = await asyncio.to_thread(_send)
             if status >= 400:
                 logger.warning(
                     "WebhookEscalationHandler: endpoint returned HTTP %s for "
