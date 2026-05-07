@@ -1,5 +1,10 @@
 # sarc-governance
 
+![CI](https://github.com/besanson/sarc-governance/actions/workflows/ci.yml/badge.svg)
+![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12-blue)
+![License: MIT](https://img.shields.io/badge/license-MIT-green)
+[![Checked with mypy](https://img.shields.io/badge/mypy-checked-blue)](http://mypy-lang.org/)
+
 A runtime governance layer that wraps any async toolset and enforces declarative
 constraints (hard / soft / escalation) at three in-process points around every tool call.
 
@@ -23,6 +28,7 @@ constraints (hard / soft / escalation) at three in-process points around every t
 - [Quickstart for developers](docs/quickstart-for-developers.md) — 10-minute path from clone to first governed call.
 - [FAQ](docs/faq.md) — does it call cloud providers, replace Bedrock, make logs tamper-proof, etc.
 - [Integration checklist](docs/integration-checklist.md) — the decisions you have to make before shipping.
+- [Policy cookbook](docs/policy-cookbook.md) — copy-paste YAML recipes for common governance patterns.
 
 ## Reference docs
 
@@ -89,6 +95,21 @@ side-by-side comparison.
 
 ---
 
+## How SARC relates to other approaches
+
+| Approach | What it does well | Gap SARC addresses |
+|---|---|---|
+| Plain logging | Records events after they happen | Does not enforce before tool execution |
+| Tool allowlists | Restricts available tools | Usually lacks contextual policy decisions |
+| LLM output guardrails | Filters model inputs/outputs | May not govern concrete tool-call arguments |
+| Framework callbacks | Hooks into agent execution | Often framework-specific; not audit-centric |
+| General policy engines (OPA, Cedar) | Express rich policies | May not provide agent/tool trace semantics |
+| SARC | Runtime action governance + typed audit traces | Early-stage developer toolkit; not production-hardened |
+
+SARC complements rather than replaces these controls. Logging is still useful. IAM still owns authentication. Model-level guardrails still filter outputs. SARC adds the enforcement loop and the audit trail at the tool-dispatch boundary.
+
+---
+
 ## Concepts
 
 | Concept | Description |
@@ -145,6 +166,40 @@ first (`pip install pytest-asyncio>=0.23`) or your test run will be incomplete.
 
 No external services. No API keys. The procurement demo prints per-scenario outcomes
 and a final SARC audit summary.
+
+---
+
+## Choose your path
+
+### I am reading the paper
+
+Start with the [mental model](docs/mental-model.md), then regenerate the benchmark artifacts:
+
+```bash
+make reproduce
+```
+
+Outputs are written to `artifacts/benchmarks/`. The benchmark script is `benchmarks/sarc_eval.py`; the paper maps directly to the architecture in `src/sarc_governance/`.
+
+### I want to run a demo
+
+```bash
+python examples/kaos_pais_adapter/run_demo.py    # KAOS/PAIS integration with 6 governance scenarios
+python examples/multi_agent_governed/run_demo.py # Two chained agents with independent specs
+python examples/procurement_agent/run_demo.py    # Procurement approval with YAML spec
+```
+
+### I want to govern my own agent
+
+Read the [integration quickstart](docs/quickstart-for-developers.md), then pick a recipe from the [policy cookbook](docs/policy-cookbook.md).
+
+### I want to inspect audit traces
+
+```bash
+sarc-governance audit examples/audit_trace_file/spec.yaml examples/audit_trace_file/trace_fail.json
+```
+
+See [docs/audit-traces.md](docs/audit-traces.md) for the trace schema.
 
 ---
 
@@ -253,6 +308,21 @@ for the full status mapping.
 
 ---
 
+## Limitations
+
+SARC is a developer toolkit and research artifact. Before deploying in a regulated or high-stakes environment, read these limitations:
+
+- **Not a replacement for IAM.** SARC does not authenticate callers or authorize access. It enforces constraints on tool-call arguments.
+- **Not a replacement for secure sandboxing.** Predicates are arbitrary Python callables evaluated in-process. A malicious spec is malicious code.
+- **Not a complete prompt-injection defense.** SARC does not parse model outputs. Prompt injection that changes tool arguments can still trigger a constraint; prompt injection that injects a new tool call is governed only if that tool call reaches GovernanceToolset.
+- **Not a distributed transaction system.** The shipped trace stores are single-writer. Multi-agent scenarios with shared state require application-level coordination.
+- **Trace integrity depends on deployment choices.** The hash chain is tamper-evident, not tamper-proof. verify-chain detects tampering after the fact; it is not a real-time integrity monitor.
+- **Policy correctness depends on policy authors.** A predicate that always returns False is a silent governance gap. Test your predicates.
+
+See [docs/threat-model.md](docs/threat-model.md) for the full threat model.
+
+---
+
 ## What works today vs. what is not production-hardened
 
 **Works today**
@@ -335,6 +405,24 @@ Pre-computed results from the SARC paper evaluation live in
 ```bash
 python benchmarks/sarc_eval.py
 ```
+
+---
+
+## Reproducing benchmark results
+
+To regenerate the benchmark artifacts from the paper:
+
+```bash
+pip install -e ".[dev]"
+make reproduce
+```
+
+Outputs are written to `artifacts/benchmarks/`:
+- `sarc_eval_results.csv` — regime comparison across 50 seeds
+- `sarc_eval_noise_sweep.csv` — predicate-noise / enforcement-failure sweep
+- `sarc_eval_summary.json` — per-regime means and 95% confidence intervals
+
+The reproduction uses a fixed random seed sequence and is deterministic. CI runs a fast smoke test (`make benchmark-smoke`) on every PR to verify the benchmark harness is not broken.
 
 ---
 

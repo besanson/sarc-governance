@@ -139,3 +139,26 @@ Every evaluation produces one `TraceRecord` with these fields:
   spec content as code, not data.
 - Provide retries, backoff, or idempotency around the inner toolset.
 - Coordinate concurrent agents. A `GovernanceToolset` is single-actor.
+
+## Architecture diagram
+
+```mermaid
+flowchart LR
+    A[Agent or Application] --> B[GovernanceToolset]
+    B --> C[PAG: Pre-Action Gate]
+    B --> D[ATM: Action-Time Monitor]
+    B --> E[PAA: Post-Action Auditor]
+    C --> F{Decision}
+    F -->|Allow| G[Tool Execution]
+    F -->|Block| H[ConstraintViolation]
+    F -->|Escalate| I[EscalationRouter]
+    G --> D
+    D --> E
+    E --> J[TraceRecord]
+    H --> J
+    I --> J
+    J --> K[TraceStore]
+    K --> L[audit_trace / CLI]
+```
+
+Plug in at `GovernanceToolset(wrapped=your_toolset, spec=your_spec)`. The enforcement points and trace emission are automatic.

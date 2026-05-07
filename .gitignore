@@ -17,3 +17,4 @@ htmlcov/
 *.log
 examples/preproduction_trace_store/trace.sqlite
 examples/preproduction_trace_store/trace.jsonl
+artifacts/
