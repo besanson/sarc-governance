@@ -38,7 +38,10 @@ from sarc_governance import Constraint, ConstraintSpec, ConstraintViolation
 from sarc_governance.context import ExecutionContext
 from sarc_governance.trace import TraceRecord
 
-from examples.kaos_pais_adapter.adapter import build_governed_toolset
+import sys as _sys
+import pathlib as _pathlib
+_sys.path.insert(0, str(_pathlib.Path(__file__).parent))
+from adapter import build_governed_toolset
 
 
 # ---------------------------------------------------------------------------
