@@ -39,7 +39,6 @@ from sarc_governance import EscalationRouter, GovernanceToolset
 from sarc_governance.constraints import ConstraintSpec
 from sarc_governance.context import ExecutionContext
 from sarc_governance.specs import load_spec as _load_spec
-from sarc_governance.trace import TraceRecord
 
 logger = logging.getLogger(__name__)
 

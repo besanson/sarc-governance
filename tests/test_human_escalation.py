@@ -65,8 +65,6 @@ async def test_low_value_refund_passes_without_review(demo):
     inner = demo.RefundToolset()
     governed = demo.GovernanceToolset(wrapped=inner, spec=spec)
 
-    result = await governed.call_tool(
-        "billing.refund", {"amount": 25, "request_id": "REQ-LOW"}
-    )
+    result = await governed.call_tool("billing.refund", {"amount": 25, "request_id": "REQ-LOW"})
     assert result["status"] == "issued"
     assert ledger.decisions == {}

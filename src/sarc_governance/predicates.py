@@ -60,9 +60,11 @@ def register(
         register("my_pred", my_pred)
     """
     if fn is None:
+
         def decorator(f: PredicateFn) -> PredicateFn:
             _REGISTRY[name] = f
             return f
+
         return decorator
     _REGISTRY[name] = fn
     return fn
@@ -74,8 +76,7 @@ def get(name: str) -> PredicateFn:
         return _REGISTRY[name]
     except KeyError:
         raise KeyError(
-            f"No predicate registered under {name!r}. "
-            f"Available: {sorted(_REGISTRY)}"
+            f"No predicate registered under {name!r}. Available: {sorted(_REGISTRY)}"
         ) from None
 
 

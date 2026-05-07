@@ -25,6 +25,26 @@ That is the whole product. The rest of the library is helper code
 metadata + diff) for building, shipping, and reviewing the constraint
 spec that drives those evaluations.
 
+## Decision flow
+
+```mermaid
+flowchart TD
+    A[Agent proposes tool action] --> B[Load ConstraintSpec]
+    B --> C[PAG: evaluate hard + escalation constraints]
+    C --> D{Hard constraint fired?}
+    D -->|Yes| E[Raise ConstraintViolation — action blocked]
+    D -->|No| F{Escalation constraint fired?}
+    F -->|Yes| G[Route to EscalationRouter — action may proceed]
+    F -->|No| H[Dispatch to inner toolset]
+    G --> H
+    H --> I[ATM: evaluate hard + escalation on result]
+    I --> J[PAA: evaluate soft + escalation constraints]
+    J --> K[Emit TraceRecord to TraceStore]
+    E --> K
+```
+
+This is how `[OK]`, `[BLOCKED]`, and `[OK+ESC]` in the demo output map to the enforcement loop.
+
 ## What it is not
 
 | It is not | What that means |

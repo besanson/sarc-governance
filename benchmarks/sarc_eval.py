@@ -175,7 +175,11 @@ def run_episode(
     for i in range(n_orders):
         amount = lognormal_amount(rng)
         first_time = rng.random() < 0.135
-        action = {"tool": "erp.create_po", "amount": amount, "first_time_supplier": first_time}
+        action = {
+            "tool": "erp.create_po",
+            "amount": amount,
+            "first_time_supplier": first_time,
+        }
         state = {"rolling_24h_spend": rolling}
         true_hard = amount >= 50000
         true_soft = rolling >= 475000
@@ -189,21 +193,49 @@ def run_episode(
             latency_ms += 7
             if true_hard and rng.random() < 0.25:
                 executed = False
-                evaluated.append({"id": "ch_high_value_po", "verif": "PAA", "fired": True, "response": "block_or_escalate"})
+                evaluated.append(
+                    {
+                        "id": "ch_high_value_po",
+                        "verif": "PAA",
+                        "fired": True,
+                        "response": "block_or_escalate",
+                    }
+                )
         elif regime == "workflow_rules":
             latency_ms += 12
             if true_hard:
-                evaluated.append({"id": "ch_high_value_po", "verif": "PAG", "fired": True, "response": "block_or_escalate"})
+                evaluated.append(
+                    {
+                        "id": "ch_high_value_po",
+                        "verif": "PAG",
+                        "fired": True,
+                        "response": "block_or_escalate",
+                    }
+                )
                 executed = False
                 reviewed = True
         elif regime == "policy_as_code_only":
             latency_ms += 15
             if true_hard and rng.random() > pred_noise:
-                evaluated.append({"id": "ch_high_value_po", "verif": "policy_layer", "fired": True, "response": "block_or_escalate"})
+                evaluated.append(
+                    {
+                        "id": "ch_high_value_po",
+                        "verif": "policy_layer",
+                        "fired": True,
+                        "response": "block_or_escalate",
+                    }
+                )
                 executed = False
                 reviewed = True
             if first_time and rng.random() > pred_noise:
-                evaluated.append({"id": "ce_first_time_supplier", "verif": "PAG", "fired": True, "response": "suspend_route_default_deny"})
+                evaluated.append(
+                    {
+                        "id": "ce_first_time_supplier",
+                        "verif": "PAG",
+                        "fired": True,
+                        "response": "suspend_route_default_deny",
+                    }
+                )
                 reviewed = True
                 escalations += 1
         elif regime == "sarc":
@@ -211,17 +243,38 @@ def run_episode(
             hard_fn = rng.random() < pred_noise
             exec_bypass = rng.random() < exec_fail
             if true_hard:
-                evaluated.append({"id": "ch_high_value_po", "verif": "PAG", "fired": not hard_fn, "response": "block_or_escalate"})
+                evaluated.append(
+                    {
+                        "id": "ch_high_value_po",
+                        "verif": "PAG",
+                        "fired": not hard_fn,
+                        "response": "block_or_escalate",
+                    }
+                )
                 if not hard_fn and not exec_bypass:
                     executed = False
                     reviewed = True
                     escalations += 1
             if first_time:
-                evaluated.append({"id": "ce_first_time_supplier", "verif": "PAG", "fired": True, "response": "suspend_route_default_deny"})
+                evaluated.append(
+                    {
+                        "id": "ce_first_time_supplier",
+                        "verif": "PAG",
+                        "fired": True,
+                        "response": "suspend_route_default_deny",
+                    }
+                )
                 reviewed = True
                 escalations += 1
             if true_soft:
-                evaluated.append({"id": "cs_rolling_spend", "verif": "PAA", "fired": True, "response": "throttle_log"})
+                evaluated.append(
+                    {
+                        "id": "cs_rolling_spend",
+                        "verif": "PAA",
+                        "fired": True,
+                        "response": "throttle_log",
+                    }
+                )
         else:
             raise ValueError(regime)
 
@@ -243,7 +296,10 @@ def run_episode(
                 "state": state,
                 "action": action,
                 "evaluated": evaluated,
-                "attribution": {"authority_nonempty": True, "chain": ["principal", regime]},
+                "attribution": {
+                    "authority_nonempty": True,
+                    "chain": ["principal", regime],
+                },
             }
         )
 
@@ -283,7 +339,13 @@ def _noise_sweep_rows(seeds: int, n_orders: int) -> List[Dict[str, Any]]:
     for pred_noise in [0, 0.01, 0.05, 0.10]:
         for exec_fail in [0, 0.01, 0.05]:
             for seed in range(seeds):
-                r = run_episode(seed, "sarc", n_orders=n_orders, pred_noise=pred_noise, exec_fail=exec_fail)
+                r = run_episode(
+                    seed,
+                    "sarc",
+                    n_orders=n_orders,
+                    pred_noise=pred_noise,
+                    exec_fail=exec_fail,
+                )
                 r["pred_noise"] = pred_noise
                 r["exec_fail"] = exec_fail
                 rows.append(r)
@@ -301,9 +363,22 @@ def _summarise_benchmark(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     summary = []
     for regime in REGIMES:
         subset = [r for r in rows if r["regime"] == regime]
-        for metric in ["hard_executed", "soft_overages", "supplier_without_review", "escalations", "latency_ms_per_step"]:
+        for metric in [
+            "hard_executed",
+            "soft_overages",
+            "supplier_without_review",
+            "escalations",
+            "latency_ms_per_step",
+        ]:
             vals = [r[metric] for r in subset]
-            summary.append({"regime": regime, "metric": metric, "mean": mean(vals), "ci95": ci95(vals)})
+            summary.append(
+                {
+                    "regime": regime,
+                    "metric": metric,
+                    "mean": mean(vals),
+                    "ci95": ci95(vals),
+                }
+            )
     return summary
 
 
@@ -311,9 +386,18 @@ def _summarise_noise(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     summary = []
     for pred_noise in [0, 0.01, 0.05, 0.10]:
         for exec_fail in [0, 0.01, 0.05]:
-            subset = [r for r in rows if r["pred_noise"] == pred_noise and r["exec_fail"] == exec_fail]
+            subset = [
+                r for r in rows if r["pred_noise"] == pred_noise and r["exec_fail"] == exec_fail
+            ]
             vals = [r["hard_executed"] for r in subset]
-            summary.append({"pred_noise": pred_noise, "exec_fail": exec_fail, "hard_executed_mean": mean(vals), "hard_executed_ci95": ci95(vals)})
+            summary.append(
+                {
+                    "pred_noise": pred_noise,
+                    "exec_fail": exec_fail,
+                    "hard_executed_mean": mean(vals),
+                    "hard_executed_ci95": ci95(vals),
+                }
+            )
     return summary
 
 

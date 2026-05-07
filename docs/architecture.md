@@ -144,21 +144,70 @@ Every evaluation produces one `TraceRecord` with these fields:
 
 ```mermaid
 flowchart LR
-    A[Agent or Application] --> B[GovernanceToolset]
+    A[Agent or App] --> B[SARC GovernanceToolset]
     B --> C[PAG: Pre-Action Gate]
     B --> D[ATM: Action-Time Monitor]
     B --> E[PAA: Post-Action Auditor]
+
     C --> F{Decision}
     F -->|Allow| G[Tool Execution]
     F -->|Block| H[ConstraintViolation]
     F -->|Escalate| I[EscalationRouter]
+
     G --> D
     D --> E
     E --> J[TraceRecord]
     H --> J
     I --> J
+
     J --> K[TraceStore]
     K --> L[audit_trace / CLI]
 ```
 
-Plug in at `GovernanceToolset(wrapped=your_toolset, spec=your_spec)`. The enforcement points and trace emission are automatic.
+`GovernanceToolset` wraps any async toolset. Add it with `GovernanceToolset(wrapped=your_toolset, spec=your_spec)` — enforcement and trace emission are automatic.
+
+## Decision flow
+
+```mermaid
+flowchart TD
+    A[Agent proposes tool action] --> B[Load ConstraintSpec]
+    B --> C[PAG: evaluate hard + escalation constraints]
+    C --> D{Hard constraint fired?}
+    D -->|Yes| E[Raise ConstraintViolation — action blocked]
+    D -->|No| F{Escalation constraint fired?}
+    F -->|Yes| G[Route to EscalationRouter — action may proceed]
+    F -->|No| H[Dispatch to inner toolset]
+    G --> H
+    H --> I[ATM: evaluate hard + escalation on result]
+    I --> J[PAA: evaluate soft + escalation constraints]
+    J --> K[Emit TraceRecord to TraceStore]
+
+    E --> K
+```
+
+## Audit trace lifecycle
+
+```mermaid
+sequenceDiagram
+    participant Agent
+    participant SARC as GovernanceToolset
+    participant Tool
+    participant Store as TraceStore
+    participant Auditor
+
+    Agent->>SARC: call_tool(name, args)
+    SARC->>SARC: PAG — evaluate constraints
+    alt Allowed
+        SARC->>Tool: Execute tool
+        Tool-->>SARC: Return result
+        SARC->>SARC: ATM + PAA — evaluate constraints
+    else Blocked
+        SARC-->>Agent: raise ConstraintViolation
+    else Escalated
+        SARC->>Tool: Execute tool (escalation does not block)
+        SARC->>SARC: Route to EscalationRouter
+    end
+    SARC->>Store: Append signed TraceRecord (hash-chained)
+    Auditor->>Store: audit_trace(spec, trace)
+    Store-->>Auditor: Discrepancy report (empty = conformant)
+```

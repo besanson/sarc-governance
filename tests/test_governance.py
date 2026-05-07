@@ -59,15 +59,17 @@ async def test_pag_hard_predicate_receives_correct_context():
         received.append(dict(ctx))
         return False
 
-    toolset, _, _, _ = make_governance([
-        Constraint(
-            id="c",
-            klass=ConstraintClass.HARD,
-            verif=EnforcementPoint.PAG,
-            response=Response.BLOCK,
-            predicate=pred,
-        )
-    ])
+    toolset, _, _, _ = make_governance(
+        [
+            Constraint(
+                id="c",
+                klass=ConstraintClass.HARD,
+                verif=EnforcementPoint.PAG,
+                response=Response.BLOCK,
+                predicate=pred,
+            )
+        ]
+    )
     await toolset.call_tool("my_tool", {"x": 1}, ctx=None, tool=None)
     assert received[0]["tool"] == "my_tool"
     assert received[0]["args"] == {"x": 1}

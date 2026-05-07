@@ -126,6 +126,7 @@ class WebhookEscalationHandler:
 
         try:
             import asyncio
+
             status = await asyncio.to_thread(_send)
             if status >= 400:
                 logger.warning(
@@ -137,8 +138,7 @@ class WebhookEscalationHandler:
                 )
         except urllib.error.URLError as exc:
             logger.warning(
-                "WebhookEscalationHandler: delivery failed for constraint=%s "
-                "action=%s — %s",
+                "WebhookEscalationHandler: delivery failed for constraint=%s action=%s — %s",
                 record.constraint_id,
                 record.action_id,
                 exc,

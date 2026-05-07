@@ -60,7 +60,11 @@ def test_constraint_accepts_enum_members():
         (ConstraintClass.SOFT, EnforcementPoint.PAG, False),  # soft cannot be PAG
         (ConstraintClass.ESCALATION, EnforcementPoint.PAG, True),
         (ConstraintClass.ESCALATION, EnforcementPoint.PAA, True),
-        (ConstraintClass.ESCALATION, EnforcementPoint.ATM, False),  # escalation cannot be ATM
+        (
+            ConstraintClass.ESCALATION,
+            EnforcementPoint.ATM,
+            False,
+        ),  # escalation cannot be ATM
     ],
 )
 def test_is_compatible(klass, verif, should_pass):
@@ -107,12 +111,18 @@ def test_constraint_rejects_incompatible_escalation_atm():
 
 def test_spec_rejects_duplicate_ids():
     c1 = Constraint(
-        id="dup", klass=ConstraintClass.HARD, verif=EnforcementPoint.PAG,
-        response=Response.BLOCK, predicate=lambda _: True,
+        id="dup",
+        klass=ConstraintClass.HARD,
+        verif=EnforcementPoint.PAG,
+        response=Response.BLOCK,
+        predicate=lambda _: True,
     )
     c2 = Constraint(
-        id="dup", klass=ConstraintClass.SOFT, verif=EnforcementPoint.PAA,
-        response=Response.THROTTLE_LOG, predicate=lambda _: True,
+        id="dup",
+        klass=ConstraintClass.SOFT,
+        verif=EnforcementPoint.PAA,
+        response=Response.THROTTLE_LOG,
+        predicate=lambda _: True,
     )
     with pytest.raises(ValueError, match="Duplicate"):
         ConstraintSpec(constraints=[c1, c2])
@@ -120,12 +130,18 @@ def test_spec_rejects_duplicate_ids():
 
 def test_spec_at_filters_by_point():
     c_pag = Constraint(
-        id="a", klass=ConstraintClass.HARD, verif=EnforcementPoint.PAG,
-        response=Response.BLOCK, predicate=lambda _: True,
+        id="a",
+        klass=ConstraintClass.HARD,
+        verif=EnforcementPoint.PAG,
+        response=Response.BLOCK,
+        predicate=lambda _: True,
     )
     c_paa = Constraint(
-        id="b", klass=ConstraintClass.SOFT, verif=EnforcementPoint.PAA,
-        response=Response.THROTTLE_LOG, predicate=lambda _: True,
+        id="b",
+        klass=ConstraintClass.SOFT,
+        verif=EnforcementPoint.PAA,
+        response=Response.THROTTLE_LOG,
+        predicate=lambda _: True,
     )
     spec = ConstraintSpec(constraints=[c_pag, c_paa])
     assert spec.at(EnforcementPoint.PAG) == [c_pag]
@@ -135,8 +151,11 @@ def test_spec_at_filters_by_point():
 
 def test_spec_by_id():
     c = Constraint(
-        id="find_me", klass=ConstraintClass.HARD, verif=EnforcementPoint.PAG,
-        response=Response.BLOCK, predicate=lambda _: True,
+        id="find_me",
+        klass=ConstraintClass.HARD,
+        verif=EnforcementPoint.PAG,
+        response=Response.BLOCK,
+        predicate=lambda _: True,
     )
     spec = ConstraintSpec(constraints=[c])
     assert spec.by_id("find_me") is c
@@ -145,12 +164,18 @@ def test_spec_by_id():
 
 def test_spec_len_and_iter():
     c1 = Constraint(
-        id="x1", klass=ConstraintClass.HARD, verif=EnforcementPoint.PAG,
-        response=Response.BLOCK, predicate=lambda _: True,
+        id="x1",
+        klass=ConstraintClass.HARD,
+        verif=EnforcementPoint.PAG,
+        response=Response.BLOCK,
+        predicate=lambda _: True,
     )
     c2 = Constraint(
-        id="x2", klass=ConstraintClass.SOFT, verif=EnforcementPoint.PAA,
-        response=Response.THROTTLE_LOG, predicate=lambda _: False,
+        id="x2",
+        klass=ConstraintClass.SOFT,
+        verif=EnforcementPoint.PAA,
+        response=Response.THROTTLE_LOG,
+        predicate=lambda _: False,
     )
     spec = ConstraintSpec(constraints=[c1, c2])
     assert len(spec) == 2

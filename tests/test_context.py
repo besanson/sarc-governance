@@ -62,9 +62,7 @@ def test_execution_context_from_obj_reads_attached_attribute():
 
 
 def test_execution_context_to_dict_round_trips():
-    ec = ExecutionContext(
-        principal_id="p", roles=("a", "b"), metadata={"foo": "bar"}
-    )
+    ec = ExecutionContext(principal_id="p", roles=("a", "b"), metadata={"foo": "bar"})
     d = ec.to_dict()
     assert d["roles"] == ["a", "b"]
     assert d["metadata"] == {"foo": "bar"}

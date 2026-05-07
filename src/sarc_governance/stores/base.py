@@ -2,7 +2,17 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, Iterator, List, Mapping, Optional, Protocol, Union, runtime_checkable
+from typing import (
+    Any,
+    Dict,
+    Iterator,
+    List,
+    Mapping,
+    Optional,
+    Protocol,
+    Union,
+    runtime_checkable,
+)
 
 from sarc_governance.trace import TraceRecord
 

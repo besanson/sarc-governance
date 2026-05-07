@@ -13,7 +13,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Dict, FrozenSet, List, Optional, Protocol, runtime_checkable
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    FrozenSet,
+    List,
+    Optional,
+    Protocol,
+    runtime_checkable,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -35,7 +44,7 @@ class EnforcementPoint(str, Enum):
     PAG = "PAG"  # Pre-Action Gate  — before tool dispatch
     ATM = "ATM"  # Action-Time Monitor — around/during dispatch
     PAA = "PAA"  # Post-Action Auditor — after dispatch
-    ER = "ER"    # Escalation Router  — asynchronous routing (not an inline point)
+    ER = "ER"  # Escalation Router  — asynchronous routing (not an inline point)
 
 
 class Response(str, Enum):

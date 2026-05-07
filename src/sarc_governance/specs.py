@@ -112,9 +112,7 @@ def _load_yaml(text: str) -> Dict[str, Any]:
     try:
         import yaml  # type: ignore[import-untyped]
     except ModuleNotFoundError as e:
-        raise ImportError(
-            "pyyaml is required to load YAML specs: pip install pyyaml"
-        ) from e
+        raise ImportError("pyyaml is required to load YAML specs: pip install pyyaml") from e
     return yaml.safe_load(text) or {}
 
 

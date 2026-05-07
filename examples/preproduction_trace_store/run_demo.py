@@ -31,7 +31,6 @@ from sarc_governance import (
     ConstraintSpec,
     ExecutionContext,
     GovernanceToolset,
-    JSONLTraceStore,
     PolicyMetadata,
     SQLiteTraceStore,
     diff_policies,
@@ -149,9 +148,7 @@ async def main() -> None:
     print("running 3 governed tool calls...")
     try:
         await governed.call_tool("erp.create_po", {"amount": 1_000})  # passes
-        await governed.call_tool(
-            "erp.create_po", {"amount": 1_500, "first_time_supplier": False}
-        )
+        await governed.call_tool("erp.create_po", {"amount": 1_500, "first_time_supplier": False})
         # This one trips the hard PAG block.
         await governed.call_tool("erp.create_po", {"amount": 75_000})
     except Exception as exc:  # ConstraintViolation
@@ -184,10 +181,7 @@ async def main() -> None:
         if line.strip():
             exported.append(json.loads(line))
     breaks = verify_chain(exported)
-    print(
-        "exported hash chain: "
-        + ("OK" if not breaks else f"BROKEN ({len(breaks)})")
-    )
+    print("exported hash chain: " + ("OK" if not breaks else f"BROKEN ({len(breaks)})"))
 
     # 6. Show a synthetic policy diff.
     print()

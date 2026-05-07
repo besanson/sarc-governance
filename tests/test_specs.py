@@ -253,5 +253,6 @@ def test_safe_load_spec_no_extra_predicates_param(tmp_path: pathlib.Path):
         "    predicate: is_high_value_po\n"
     )
     import inspect
+
     sig = inspect.signature(safe_load_spec)
     assert "extra_predicates" not in sig.parameters

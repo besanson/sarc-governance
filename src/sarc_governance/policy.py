@@ -81,7 +81,9 @@ class PolicyBundle:
     metadata: PolicyMetadata = field(default_factory=PolicyMetadata)
 
     def with_recomputed_checksum(self) -> "PolicyBundle":
-        meta = PolicyMetadata(**{**self.metadata.to_dict(), "checksum": policy_checksum(self.spec)})
+        meta = PolicyMetadata(
+            **{**self.metadata.to_dict(), "checksum": policy_checksum(self.spec)}
+        )
         return PolicyBundle(spec=self.spec, metadata=meta)
 
 

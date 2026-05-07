@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sarc-governance"
-version = "0.1.0"
+version = "0.2.0"
 description = "SARC runtime governance layer for async toolsets — framework-agnostic"
 readme = "README.md"
 license = { text = "MIT" }
@@ -24,11 +24,16 @@ dependencies = [
     "pyyaml>=6.0",
 ]
 
+[project.urls]
+Homepage = "https://github.com/besanson/sarc-governance"
+Repository = "https://github.com/besanson/sarc-governance"
+Issues = "https://github.com/besanson/sarc-governance/issues"
+Changelog = "https://github.com/besanson/sarc-governance/blob/main/CHANGELOG.md"
+
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
-    "black>=24.0",
     "ruff>=0.4",
     "mypy>=1.9",
 ]
@@ -43,6 +48,6 @@ where = ["src"]
 asyncio_mode = "auto"
 testpaths = ["tests"]
 
-[tool.black]
+[tool.ruff]
 line-length = 99
-target-version = ["py311"]
+target-version = "py311"

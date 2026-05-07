@@ -123,9 +123,7 @@ def cmd_audit(args: argparse.Namespace) -> int:
         )
         return 1
 
-    discrepancies = audit_trace(
-        spec, trace, check_attribution=not args.no_attribution
-    )
+    discrepancies = audit_trace(spec, trace, check_attribution=not args.no_attribution)
 
     print(f"spec: {spec_path}  ({len(spec)} constraints)")
     print(f"trace: {trace_path}  ({len(trace)} records)")
@@ -142,8 +140,7 @@ def cmd_audit(args: argparse.Namespace) -> int:
     print()
     for d in discrepancies:
         print(
-            f"  [{d['type']}] action={d['action_id']} "
-            f"constraint={d['constraint']}: {d['message']}"
+            f"  [{d['type']}] action={d['action_id']} constraint={d['constraint']}: {d['message']}"
         )
 
     if args.allow_discrepancies:
@@ -332,8 +329,7 @@ def _run_procurement_demo() -> int:
     )
     if not demo_path.exists():
         print(
-            "error: procurement demo script not found at "
-            f"{demo_path}; run from a source checkout",
+            f"error: procurement demo script not found at {demo_path}; run from a source checkout",
             file=sys.stderr,
         )
         return 2

@@ -54,7 +54,14 @@ def test_noise_csv_exists(benchmark_result):
 
 def test_summary_has_required_keys(benchmark_result):
     result, out = benchmark_result
-    required = {"n_cases", "n_runs", "seed", "allow_count", "block_count", "escalation_count"}
+    required = {
+        "n_cases",
+        "n_runs",
+        "seed",
+        "allow_count",
+        "block_count",
+        "escalation_count",
+    }
     assert required <= result.keys(), f"Missing keys: {required - result.keys()}"
 
 

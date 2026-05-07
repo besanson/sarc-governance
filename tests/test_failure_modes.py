@@ -174,6 +174,4 @@ async def test_failing_memory_does_not_break_agent_loop(caplog):
     with caplog.at_level(logging.ERROR):
         result = await governed.call_tool("noop", {})
     assert result == {"ok": True}
-    assert any(
-        "failed to persist trace record" in r.message for r in caplog.records
-    )
+    assert any("failed to persist trace record" in r.message for r in caplog.records)

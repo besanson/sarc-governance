@@ -31,7 +31,7 @@ from __future__ import annotations
 
 import asyncio
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 from sarc_governance import Constraint, ConstraintSpec, ConstraintViolation
@@ -40,6 +40,7 @@ from sarc_governance.trace import TraceRecord
 
 import sys as _sys
 import pathlib as _pathlib
+
 _sys.path.insert(0, str(_pathlib.Path(__file__).parent))
 from adapter import build_governed_toolset
 
@@ -143,12 +144,10 @@ class KAOSDelegationToolset:
         tool: Any,
     ) -> Any:
         if name.startswith("delegate_to_"):
-            agent_name = name[len("delegate_to_"):]
+            agent_name = name[len("delegate_to_") :]
             if agent_name not in self._agents:
                 raise ValueError(f"Unknown sub-agent: {agent_name!r}")
-            return await self._agents[agent_name].process_message(
-                tool_args.get("task", ""), {}
-            )
+            return await self._agents[agent_name].process_message(tool_args.get("task", ""), {})
         return {"tool": name, "args": tool_args, "status": "ok"}
 
 
@@ -161,7 +160,7 @@ def _block_unknown_agent(ctx: Dict[str, Any]) -> bool:
     name = ctx["tool"]
     if not name.startswith("delegate_to_"):
         return False
-    agent = name[len("delegate_to_"):]
+    agent = name[len("delegate_to_") :]
     allowed = ctx["args"].get("_allowed_agents", [])
     return agent not in allowed
 
@@ -234,10 +233,7 @@ async def _escalation_handler(record: TraceRecord, ctx: Dict[str, Any]) -> None:
         "agent": agent_id,
     }
     _escalation_log.append(entry)
-    print(
-        f"  [ESCALATION] constraint={record.constraint_id} "
-        f"tool={record.tool} agent={agent_id}"
-    )
+    print(f"  [ESCALATION] constraint={record.constraint_id} tool={record.tool} agent={agent_id}")
 
 
 # ---------------------------------------------------------------------------
@@ -257,8 +253,10 @@ SCENARIOS = [
     Scenario(
         label="Allowed delegation to finance_agent",
         tool="delegate_to_finance_agent",
-        args={"task": "generate Q1 report",
-              "_allowed_agents": ["finance_agent", "data_agent"]},
+        args={
+            "task": "generate Q1 report",
+            "_allowed_agents": ["finance_agent", "data_agent"],
+        },
     ),
     Scenario(
         label="Allowed MCP tool call (low value)",
@@ -268,8 +266,10 @@ SCENARIOS = [
     Scenario(
         label="BLOCKED — delegation to unknown agent",
         tool="delegate_to_shadow_agent",
-        args={"task": "exfiltrate logs",
-              "_allowed_agents": ["finance_agent", "data_agent"]},
+        args={
+            "task": "exfiltrate logs",
+            "_allowed_agents": ["finance_agent", "data_agent"],
+        },
     ),
     Scenario(
         label="BLOCKED — high-value purchase order",
@@ -285,8 +285,10 @@ SCENARIOS = [
     Scenario(
         label="Allowed delegation to data_agent",
         tool="delegate_to_data_agent",
-        args={"task": "summarise sales data",
-              "_allowed_agents": ["finance_agent", "data_agent"]},
+        args={
+            "task": "summarise sales data",
+            "_allowed_agents": ["finance_agent", "data_agent"],
+        },
     ),
 ]
 

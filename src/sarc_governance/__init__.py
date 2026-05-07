@@ -47,7 +47,12 @@ from sarc_governance.constraints import (
 )
 from sarc_governance.context import ExecutionContext
 from sarc_governance.escalation import EscalationHandler, EscalationRouter
-from sarc_governance.governance import ConstraintViolation, GovernanceToolset, MemoryProtocol, ToolsetProtocol
+from sarc_governance.governance import (
+    ConstraintViolation,
+    GovernanceToolset,
+    MemoryProtocol,
+    ToolsetProtocol,
+)
 from sarc_governance.trace import ActionEvent, TraceRecord, new_action_id
 from sarc_governance.audit import audit_trace
 from sarc_governance.specs import load_spec, load_spec_from_string, safe_load_spec

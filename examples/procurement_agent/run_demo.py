@@ -194,7 +194,9 @@ async def main() -> None:
     if discrepancies:
         print(f"Discrepancies ({len(discrepancies)}):")
         for d in discrepancies:
-            print(f"  [{d['type']}] action={d['action_id']} constraint={d['constraint']}: {d['message']}")
+            print(
+                f"  [{d['type']}] action={d['action_id']} constraint={d['constraint']}: {d['message']}"
+            )
         print()
         print("Note: Coverage discrepancies on blocked actions are expected — when a hard")
         print("PAG constraint raises before dispatch, PAA constraints are never reached.")

@@ -27,7 +27,12 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from sarc_governance.constraints import Constraint, ConstraintSpec, is_compatible, EnforcementPoint
+from sarc_governance.constraints import (
+    Constraint,
+    ConstraintSpec,
+    is_compatible,
+    EnforcementPoint,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -252,7 +257,12 @@ def _audit_action_level(
             attrib = rec.get("attribution", {})
             if not attrib.get("authority_nonempty", False):
                 discrepancies.append(
-                    _disc(action_id, None, "attribution", "Attribution chain has empty authority.")
+                    _disc(
+                        action_id,
+                        None,
+                        "attribution",
+                        "Attribution chain has empty authority.",
+                    )
                 )
 
     return discrepancies

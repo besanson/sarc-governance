@@ -47,7 +47,12 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, Optional, Protocol, runtime_checkable
 
-from sarc_governance.constraints import ConstraintClass, ConstraintSpec, EnforcementPoint, Response
+from sarc_governance.constraints import (
+    ConstraintClass,
+    ConstraintSpec,
+    EnforcementPoint,
+    Response,
+)
 from sarc_governance.context import ExecutionContext
 from sarc_governance.escalation import EscalationRouter
 from sarc_governance.trace import TraceRecord
@@ -75,8 +80,7 @@ class ToolsetProtocol(Protocol):
         tool_args: Dict[str, Any],
         ctx: Any,
         tool: Any,
-    ) -> Any:
-        ...
+    ) -> Any: ...
 
 
 @runtime_checkable
@@ -89,8 +93,7 @@ class MemoryProtocol(Protocol):
         event_type: str,
         content: Any,
         metadata: Optional[Dict[str, Any]] = None,
-    ) -> Any:
-        ...
+    ) -> Any: ...
 
 
 # ---------------------------------------------------------------------------
@@ -207,7 +210,12 @@ class GovernanceToolset:
         result = await self.wrapped.call_tool(name, tool_args, ctx, tool)
         elapsed = time.perf_counter() - started
 
-        atm_ctx = {"tool": name, "args": tool_args, "result": result, "elapsed": elapsed}
+        atm_ctx = {
+            "tool": name,
+            "args": tool_args,
+            "result": result,
+            "elapsed": elapsed,
+        }
         if execution_context is not None and not execution_context.is_empty():
             atm_ctx["execution_context"] = execution_context
         for c in atm_constraints:

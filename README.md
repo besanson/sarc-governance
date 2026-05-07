@@ -110,6 +110,34 @@ SARC complements rather than replaces these controls. Logging is still useful. I
 
 ---
 
+## Architecture
+
+```mermaid
+flowchart LR
+    A[Agent or App] --> B[SARC GovernanceToolset]
+    B --> C[PAG: Pre-Action Gate]
+    B --> D[ATM: Action-Time Monitor]
+    B --> E[PAA: Post-Action Auditor]
+
+    C --> F{Decision}
+    F -->|Allow| G[Tool Execution]
+    F -->|Block| H[ConstraintViolation]
+    F -->|Escalate| I[EscalationRouter]
+
+    G --> D
+    D --> E
+    E --> J[TraceRecord]
+    H --> J
+    I --> J
+
+    J --> K[TraceStore]
+    K --> L[audit_trace / CLI]
+```
+
+`GovernanceToolset` wraps any async toolset. Add it with `GovernanceToolset(wrapped=your_toolset, spec=your_spec)` — enforcement and trace emission are automatic.
+
+---
+
 ## Concepts
 
 | Concept | Description |

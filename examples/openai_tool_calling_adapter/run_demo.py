@@ -24,8 +24,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-from dataclasses import dataclass
-from typing import Any, Awaitable, Callable, Dict, List, Optional
+from typing import Any, Awaitable, Callable, Dict, List
 
 from sarc_governance import (
     Constraint,
@@ -153,9 +152,7 @@ async def dispatch_tool_calls(
 
 
 def _is_large_transfer(ctx: Dict[str, Any]) -> bool:
-    return (
-        ctx["tool"] == "transfer_funds" and ctx["args"].get("amount", 0) >= 10_000
-    )
+    return ctx["tool"] == "transfer_funds" and ctx["args"].get("amount", 0) >= 10_000
 
 
 SPEC = ConstraintSpec(
@@ -192,9 +189,7 @@ def _assistant_tool_calls() -> List[Dict[str, Any]]:
             "type": "function",
             "function": {
                 "name": "transfer_funds",
-                "arguments": json.dumps(
-                    {"from": "acct-A", "to": "acct-B", "amount": 250}
-                ),
+                "arguments": json.dumps({"from": "acct-A", "to": "acct-B", "amount": 250}),
             },
         },
         {
@@ -202,9 +197,7 @@ def _assistant_tool_calls() -> List[Dict[str, Any]]:
             "type": "function",
             "function": {
                 "name": "transfer_funds",
-                "arguments": json.dumps(
-                    {"from": "acct-A", "to": "acct-C", "amount": 50_000}
-                ),
+                "arguments": json.dumps({"from": "acct-A", "to": "acct-C", "amount": 50_000}),
             },
         },
     ]
@@ -222,7 +215,9 @@ def _print(messages: List[Dict[str, Any]]) -> None:
     print("=" * 60)
     for m in messages:
         body = json.loads(m["content"])
-        verdict = "BLOCKED" if "error" in body and body["error"] == "blocked_by_governance" else "OK"
+        verdict = (
+            "BLOCKED" if "error" in body and body["error"] == "blocked_by_governance" else "OK"
+        )
         print(f"  [{verdict:7}] tool_call_id={m['tool_call_id']} name={m['name']}")
         print(f"           content={body}")
 

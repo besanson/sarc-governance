@@ -32,15 +32,11 @@ def demo():
 
 
 def _decode_function_body(resp):
-    return json.loads(
-        resp["response"]["functionResponse"]["responseBody"]["TEXT"]["body"]
-    )
+    return json.loads(resp["response"]["functionResponse"]["responseBody"]["TEXT"]["body"])
 
 
 def _decode_api_body(resp):
-    return json.loads(
-        resp["response"]["responseBody"]["application/json"]["body"]
-    )
+    return json.loads(resp["response"]["responseBody"]["application/json"]["body"])
 
 
 # ---------------------------------------------------------------------------
@@ -111,9 +107,7 @@ async def test_soft_paa_constraint_is_logged_but_does_not_block(demo):
 
     trace = memory.governance_events("session-001")
     paa_records = [
-        r for r in trace
-        if r["constraint_id"] == "cs_mid_transfer_audit"
-        and r["point"] == "PAA"
+        r for r in trace if r["constraint_id"] == "cs_mid_transfer_audit" and r["point"] == "PAA"
     ]
     assert len(paa_records) == 1
     assert paa_records[0]["fired"] is True

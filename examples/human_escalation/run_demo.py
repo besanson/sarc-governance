@@ -102,9 +102,7 @@ def make_handler(
         if record.constraint_id != "ce_needs_review":
             return
         try:
-            outcome = await asyncio.wait_for(
-                reviewer.review(ctx), timeout=reviewer.timeout_s
-            )
+            outcome = await asyncio.wait_for(reviewer.review(ctx), timeout=reviewer.timeout_s)
         except asyncio.TimeoutError:
             outcome = "timeout"
         reviewer.handled.append(
@@ -150,10 +148,7 @@ def build_spec(ledger: ApprovalLedger) -> ConstraintSpec:
     """
 
     def needs_review(ctx: Dict[str, Any]) -> bool:
-        return (
-            ctx["tool"] == "billing.refund"
-            and ctx["args"].get("amount", 0) >= 1_000
-        )
+        return ctx["tool"] == "billing.refund" and ctx["args"].get("amount", 0) >= 1_000
 
     def blocked_unless_approved(ctx: Dict[str, Any]) -> bool:
         if not needs_review(ctx):
@@ -198,9 +193,7 @@ class Outcome:
 async def run() -> List[Outcome]:
     """Run three scenarios — approve, deny, timeout — and return outcomes."""
     ledger = ApprovalLedger()
-    reviewer = DeterministicReviewer(
-        responses=["approve", "deny", "timeout"], timeout_s=0.05
-    )
+    reviewer = DeterministicReviewer(responses=["approve", "deny", "timeout"], timeout_s=0.05)
     inner = RefundToolset()
     spec = build_spec(ledger)
     router = EscalationRouter(handler=make_handler(reviewer, ledger))
@@ -238,9 +231,7 @@ def _print(outcomes: List[Outcome]) -> None:
     print("=" * 60)
     for o in outcomes:
         verdict = "EXECUTED" if o.blocked_by is None else f"BLOCKED ({o.blocked_by})"
-        print(
-            f"  {o.label:<35} review={o.review_decision or '<none>':<8} -> {verdict}"
-        )
+        print(f"  {o.label:<35} review={o.review_decision or '<none>':<8} -> {verdict}")
     print()
     print(
         "Note: the EscalationRouter only routes — the ledger + a paired hard\n"

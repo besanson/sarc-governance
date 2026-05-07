@@ -132,6 +132,7 @@ async def test_webhook_sends_custom_headers():
             pass
 
     from http.server import HTTPServer as _HTTP
+
     server = _HTTP(("127.0.0.1", 0), _HeaderCapture)
     port = server.server_address[1]
     t = threading.Thread(target=server.serve_forever, daemon=True)
@@ -171,6 +172,7 @@ async def test_webhook_logs_http_error_status(caplog):
             pass
 
     from http.server import HTTPServer as _HTTP
+
     server = _HTTP(("127.0.0.1", 0), _ErrorHandler)
     port = server.server_address[1]
     t = threading.Thread(target=server.serve_forever, daemon=True)
@@ -178,6 +180,7 @@ async def test_webhook_logs_http_error_status(caplog):
     try:
         handler = WebhookEscalationHandler(url=f"http://127.0.0.1:{port}/escalate")
         import logging
+
         with caplog.at_level(logging.WARNING, logger="sarc_governance.handlers"):
             await handler(_make_record(), {})
         assert "422" in caplog.text
@@ -215,7 +218,11 @@ async def test_webhook_called_on_escalation_via_governance():
 
 
 def test_safe_serialise_passthrough_primitives():
-    assert _safe_serialise({"a": 1, "b": "x", "c": True}) == {"a": 1, "b": "x", "c": True}
+    assert _safe_serialise({"a": 1, "b": "x", "c": True}) == {
+        "a": 1,
+        "b": "x",
+        "c": True,
+    }
 
 
 def test_safe_serialise_converts_non_serialisable():
@@ -257,6 +264,7 @@ async def test_parallel_calls_produce_unique_action_ids():
 @pytest.mark.asyncio
 async def test_action_ids_are_monotonically_increasing():
     """Action IDs must be strictly increasing under concurrent load."""
+
     class RecordingToolset:
         async def call_tool(self, name, args, ctx, tool):
             return {}

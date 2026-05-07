@@ -39,7 +39,7 @@ from __future__ import annotations
 
 import asyncio
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
 from sarc_governance import (
@@ -69,9 +69,9 @@ class SimpleMemory:
         content: Any,
         metadata: Optional[Dict[str, Any]] = None,
     ) -> None:
-        self._events.append({"session_id": session_id,
-                              "event_type": event_type,
-                              "content": content})
+        self._events.append(
+            {"session_id": session_id, "event_type": event_type, "content": content}
+        )
 
     def governance_events(self) -> List[Dict[str, Any]]:
         return [e["content"] for e in self._events if e["event_type"] == "governance_event"]
@@ -80,6 +80,7 @@ class SimpleMemory:
 @dataclass
 class Deps:
     """Holds memory + session_id in the shape GovernanceToolset auto-detects."""
+
     memory: SimpleMemory
     session_id: str
     agent_name: str
@@ -107,17 +108,17 @@ class ValidatorToolset:
     def __init__(self) -> None:
         self.calls: List[Dict[str, Any]] = []
 
-    async def call_tool(
-        self, name: str, args: Dict[str, Any], ctx: Any, tool: Any
-    ) -> Any:
+    async def call_tool(self, name: str, args: Dict[str, Any], ctx: Any, tool: Any) -> Any:
         self.calls.append({"tool": name, "args": dict(args)})
         if name != "expense.validate":
             raise ValueError(f"unknown tool: {name!r}")
-        vendor = args.get("vendor", "")
         amount = float(args.get("amount", 0))
         # Simple approval logic (real agent would call an LLM here)
         if amount > 1_500:
-            return {"approved": False, "reason": f"amount ${amount:,.0f} exceeds validator limit"}
+            return {
+                "approved": False,
+                "reason": f"amount ${amount:,.0f} exceeds validator limit",
+            }
         return {"approved": True, "reason": "within policy"}
 
 
@@ -139,15 +140,16 @@ class CoordinatorToolset:
         self.calls: List[Dict[str, Any]] = []
         self._daily_spend: float = 0.0
 
-    async def call_tool(
-        self, name: str, args: Dict[str, Any], ctx: Any, tool: Any
-    ) -> Any:
+    async def call_tool(self, name: str, args: Dict[str, Any], ctx: Any, tool: Any) -> Any:
         self.calls.append({"tool": name, "args": dict(args)})
 
         if name == "erp.submit_expense":
             self._daily_spend += float(args.get("amount", 0))
-            return {"submitted": True, "expense_id": str(uuid.uuid4())[:8],
-                    "daily_total": self._daily_spend}
+            return {
+                "submitted": True,
+                "expense_id": str(uuid.uuid4())[:8],
+                "daily_total": self._daily_spend,
+            }
 
         if name == "delegate.validate_expense":
             # Build a context for the validator agent with its own session
@@ -176,6 +178,7 @@ class CoordinatorToolset:
 
 # --- ValidatorSpec ---
 
+
 def _block_blacklisted_vendor(ctx: Dict[str, Any]) -> bool:
     return ctx["args"].get("vendor", "").lower() in BLACKLISTED_VENDORS
 
@@ -192,35 +195,38 @@ def _flag_duplicate_expense(ctx: Dict[str, Any]) -> bool:
     return bool(result.get("duplicate"))
 
 
-VALIDATOR_SPEC = ConstraintSpec(constraints=[
-    Constraint(
-        id="block_blacklisted_vendor",
-        klass="hard",
-        verif="PAG",
-        response="block_or_escalate",
-        predicate=_block_blacklisted_vendor,
-        description="Block validation for vendors on the blacklist.",
-    ),
-    Constraint(
-        id="escalate_large_expense",
-        klass="escalation",
-        verif="PAG",
-        response="escalate",
-        predicate=_escalate_large_amount,
-        description="Escalate expenses over $2,000 for human review.",
-    ),
-    Constraint(
-        id="flag_duplicate_expense",
-        klass="soft",
-        verif="PAA",
-        response="throttle_log",
-        predicate=_flag_duplicate_expense,
-        description="Flag duplicate expense submissions.",
-    ),
-])
+VALIDATOR_SPEC = ConstraintSpec(
+    constraints=[
+        Constraint(
+            id="block_blacklisted_vendor",
+            klass="hard",
+            verif="PAG",
+            response="block_or_escalate",
+            predicate=_block_blacklisted_vendor,
+            description="Block validation for vendors on the blacklist.",
+        ),
+        Constraint(
+            id="escalate_large_expense",
+            klass="escalation",
+            verif="PAG",
+            response="escalate",
+            predicate=_escalate_large_amount,
+            description="Escalate expenses over $2,000 for human review.",
+        ),
+        Constraint(
+            id="flag_duplicate_expense",
+            klass="soft",
+            verif="PAA",
+            response="throttle_log",
+            predicate=_flag_duplicate_expense,
+            description="Flag duplicate expense submissions.",
+        ),
+    ]
+)
 
 
 # --- CoordinatorSpec ---
+
 
 def _block_rejected_expense(ctx: Dict[str, Any]) -> bool:
     if ctx["tool"] != "erp.submit_expense":
@@ -237,24 +243,26 @@ def _block_daily_limit_exceeded(ctx: Dict[str, Any]) -> bool:
     return (daily + amount) > 5_000
 
 
-COORDINATOR_SPEC = ConstraintSpec(constraints=[
-    Constraint(
-        id="block_rejected_expense",
-        klass="hard",
-        verif="PAG",
-        response="block_or_escalate",
-        predicate=_block_rejected_expense,
-        description="Block ERP submission if validator returned approved=False.",
-    ),
-    Constraint(
-        id="block_daily_limit",
-        klass="hard",
-        verif="PAG",
-        response="block_or_escalate",
-        predicate=_block_daily_limit_exceeded,
-        description="Block ERP submission if daily spend would exceed $5,000.",
-    ),
-])
+COORDINATOR_SPEC = ConstraintSpec(
+    constraints=[
+        Constraint(
+            id="block_rejected_expense",
+            klass="hard",
+            verif="PAG",
+            response="block_or_escalate",
+            predicate=_block_rejected_expense,
+            description="Block ERP submission if validator returned approved=False.",
+        ),
+        Constraint(
+            id="block_daily_limit",
+            klass="hard",
+            verif="PAG",
+            response="block_or_escalate",
+            predicate=_block_daily_limit_exceeded,
+            description="Block ERP submission if daily spend would exceed $5,000.",
+        ),
+    ]
+)
 
 
 # ---------------------------------------------------------------------------
@@ -265,13 +273,15 @@ _escalations: List[Dict[str, Any]] = []
 
 
 async def _escalation_handler(record: TraceRecord, ctx: Dict[str, Any]) -> None:
-    _escalations.append({
-        "constraint": record.constraint_id,
-        "tool": record.tool,
-        "agent": (ctx.get("execution_context") or {}).get("agent_id", "?")
-        if isinstance(ctx.get("execution_context"), dict)
-        else getattr(ctx.get("execution_context"), "agent_id", "?"),
-    })
+    _escalations.append(
+        {
+            "constraint": record.constraint_id,
+            "tool": record.tool,
+            "agent": (ctx.get("execution_context") or {}).get("agent_id", "?")
+            if isinstance(ctx.get("execution_context"), dict)
+            else getattr(ctx.get("execution_context"), "agent_id", "?"),
+        }
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -324,31 +334,39 @@ async def submit_expense(
     if the validator approves, it then calls erp.submit_expense.
     If either step is blocked by governance, ConstraintViolation is raised.
     """
-    ctx = Ctx(deps=Deps(memory=memory, session_id=session_id,
-                        agent_name="coordinator-agent"))
+    ctx = Ctx(deps=Deps(memory=memory, session_id=session_id, agent_name="coordinator-agent"))
 
     if amount >= 500:
         # Step 1 — delegate to validator
         validation = await coordinator.call_tool(
             "delegate.validate_expense",
             {"vendor": vendor, "amount": amount},
-            ctx=ctx, tool=None,
+            ctx=ctx,
+            tool=None,
         )
         # Step 2 — submit to ERP only if validator approved
         result = await coordinator.call_tool(
             "erp.submit_expense",
-            {"vendor": vendor, "amount": amount,
-             "_validation_result": validation,
-             "_daily_spend": coordinator_inner.daily_spend},
-            ctx=ctx, tool=None,
+            {
+                "vendor": vendor,
+                "amount": amount,
+                "_validation_result": validation,
+                "_daily_spend": coordinator_inner.daily_spend,
+            },
+            ctx=ctx,
+            tool=None,
         )
         return {"validation": validation, "submission": result}
     else:
         result = await coordinator.call_tool(
             "erp.submit_expense",
-            {"vendor": vendor, "amount": amount,
-             "_daily_spend": coordinator_inner.daily_spend},
-            ctx=ctx, tool=None,
+            {
+                "vendor": vendor,
+                "amount": amount,
+                "_daily_spend": coordinator_inner.daily_spend,
+            },
+            ctx=ctx,
+            tool=None,
         )
         return {"submission": result}
 
@@ -424,12 +442,19 @@ async def run() -> None:
 
     for s in SCENARIOS:
         esc_before = len(_escalations)
-        outcome: Dict[str, Any] = {"scenario": s.label, "vendor": s.vendor,
-                                   "amount": s.amount}
+        outcome: Dict[str, Any] = {
+            "scenario": s.label,
+            "vendor": s.vendor,
+            "amount": s.amount,
+        }
         try:
             data = await submit_expense(
-                coordinator, coordinator_inner, memory, session_id,
-                vendor=s.vendor, amount=s.amount,
+                coordinator,
+                coordinator_inner,
+                memory,
+                session_id,
+                vendor=s.vendor,
+                amount=s.amount,
             )
             outcome["status"] = "ok"
             outcome["data"] = data
@@ -458,7 +483,6 @@ async def run() -> None:
 
         results.append(outcome)
 
-    coord_traces = coordinator.spec.at("PAG") or []  # just to verify spec is wired
     coord_events = memory.governance_events()
 
     print("\n" + "=" * 65)

@@ -121,9 +121,7 @@ def test_audit_fail_trace_returns_one():
 
 
 def test_audit_fail_trace_with_allow_discrepancies_returns_zero():
-    rc, out, _ = _run(
-        ["audit", str(SPEC_AUDIT), str(TRACE_FAIL), "--allow-discrepancies"]
-    )
+    rc, out, _ = _run(["audit", str(SPEC_AUDIT), str(TRACE_FAIL), "--allow-discrepancies"])
     assert rc == 0
     assert "FAIL" in out  # still reported
 

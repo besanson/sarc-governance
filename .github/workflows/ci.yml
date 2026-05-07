@@ -28,7 +28,10 @@ jobs:
         run: pytest --tb=short -q
 
       - name: Lint (ruff)
-        run: ruff check src tests
+        run: ruff check src tests examples benchmarks
+
+      - name: Format check (ruff-format)
+        run: ruff format --check src tests examples benchmarks
 
       - name: Type check (mypy)
         run: mypy src/sarc_governance --ignore-missing-imports

@@ -54,8 +54,8 @@ from __future__ import annotations
 
 import asyncio
 import json
-from dataclasses import dataclass, field
-from typing import Any, Awaitable, Callable, Dict, List, Optional
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
 
 from sarc_governance import (
     Constraint,
@@ -63,7 +63,6 @@ from sarc_governance import (
     ConstraintViolation,
     EscalationRouter,
     GovernanceToolset,
-    TraceRecord,
     audit_trace,
 )
 
@@ -363,10 +362,7 @@ def _session_id_getter(ctx: Any) -> str:
 
 
 def _is_large_transfer(ctx: Dict[str, Any]) -> bool:
-    return (
-        ctx["tool"] == "transfer_funds"
-        and ctx["args"].get("amount", 0) >= 10_000
-    )
+    return ctx["tool"] == "transfer_funds" and ctx["args"].get("amount", 0) >= 10_000
 
 
 def _is_mid_transfer(ctx: Dict[str, Any]) -> bool:
@@ -410,7 +406,12 @@ SPEC = ConstraintSpec(
 def _safe_event() -> Dict[str, Any]:
     return {
         "messageVersion": "1.0",
-        "agent": {"name": "PaymentsAgent", "id": "AG1", "alias": "live", "version": "1"},
+        "agent": {
+            "name": "PaymentsAgent",
+            "id": "AG1",
+            "alias": "live",
+            "version": "1",
+        },
         "actionGroup": "PaymentActions",
         "function": "lookup_balance",
         "parameters": [
@@ -426,7 +427,12 @@ def _safe_event() -> Dict[str, Any]:
 def _mid_transfer_event() -> Dict[str, Any]:
     return {
         "messageVersion": "1.0",
-        "agent": {"name": "PaymentsAgent", "id": "AG1", "alias": "live", "version": "1"},
+        "agent": {
+            "name": "PaymentsAgent",
+            "id": "AG1",
+            "alias": "live",
+            "version": "1",
+        },
         "actionGroup": "PaymentActions",
         "function": "transfer_funds",
         "parameters": [
@@ -444,7 +450,12 @@ def _mid_transfer_event() -> Dict[str, Any]:
 def _large_transfer_event() -> Dict[str, Any]:
     return {
         "messageVersion": "1.0",
-        "agent": {"name": "PaymentsAgent", "id": "AG1", "alias": "live", "version": "1"},
+        "agent": {
+            "name": "PaymentsAgent",
+            "id": "AG1",
+            "alias": "live",
+            "version": "1",
+        },
         "actionGroup": "PaymentActions",
         "function": "transfer_funds",
         "parameters": [
@@ -463,7 +474,12 @@ def _api_schema_event() -> Dict[str, Any]:
     """Same call but using the OpenAPI-schema event shape."""
     return {
         "messageVersion": "1.0",
-        "agent": {"name": "PaymentsAgent", "id": "AG1", "alias": "live", "version": "1"},
+        "agent": {
+            "name": "PaymentsAgent",
+            "id": "AG1",
+            "alias": "live",
+            "version": "1",
+        },
         "actionGroup": "PaymentActions",
         "apiPath": "/balances/{account}",
         "httpMethod": "GET",
@@ -551,15 +567,15 @@ def _print_summary(summary: Dict[str, Any]) -> None:
     print()
     for entry in summary["responses"]:
         body = _decode_body(entry["response"])
-        verdict = "BLOCKED" if isinstance(body, dict) and body.get(
-            "error"
-        ) == "blocked_by_governance" else "OK"
+        verdict = (
+            "BLOCKED"
+            if isinstance(body, dict) and body.get("error") == "blocked_by_governance"
+            else "OK"
+        )
         print(f"Scenario: {entry['label']}")
         print(f"  → {verdict}  body={body}")
         if verdict == "BLOCKED":
-            print(
-                f"     constraint={body['constraint_id']} point={body['point']}"
-            )
+            print(f"     constraint={body['constraint_id']} point={body['point']}")
     print()
     print("=" * 60)
     print("Trace persisted via session memory (keyed by sessionId)")

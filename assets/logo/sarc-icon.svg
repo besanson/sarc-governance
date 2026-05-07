@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Shield -->
+  <path d="M10 6 L54 6 L54 38 L32 58 L10 38 Z" fill="#EFF6FF" stroke="#0F172A" stroke-width="3" stroke-linejoin="round"/>
+  <!-- Three connected nodes -->
+  <line x1="20" y1="22" x2="44" y2="22" stroke="#06B6D4" stroke-width="2"/>
+  <line x1="20" y1="22" x2="32" y2="40" stroke="#06B6D4" stroke-width="2"/>
+  <line x1="44" y1="22" x2="32" y2="40" stroke="#06B6D4" stroke-width="2"/>
+  <circle cx="20" cy="22" r="5" fill="#2563EB" stroke="#0F172A" stroke-width="1.5"/>
+  <circle cx="44" cy="22" r="5" fill="#2563EB" stroke="#0F172A" stroke-width="1.5"/>
+  <circle cx="32" cy="40" r="5" fill="#2563EB" stroke="#0F172A" stroke-width="1.5"/>
+  <!-- Checkmark -->
+  <polyline points="22,52 29,59 42,45" fill="none" stroke="#06B6D4" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

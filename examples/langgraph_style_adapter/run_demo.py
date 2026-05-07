@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
-from typing import Any, Awaitable, Callable, Dict, List, Optional
+from typing import Any, Awaitable, Callable, Dict, List
 
 from sarc_governance import (
     Constraint,
@@ -108,7 +108,9 @@ class FunctionDispatchToolset:
 # ---------------------------------------------------------------------------
 
 
-def make_tools_node(governed: GovernanceToolset) -> Callable[[GraphState], Awaitable[GraphState]]:
+def make_tools_node(
+    governed: GovernanceToolset,
+) -> Callable[[GraphState], Awaitable[GraphState]]:
     """Return an async node function that dispatches all pending tool calls."""
 
     async def tools_node(state: GraphState) -> GraphState:
