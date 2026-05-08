@@ -80,7 +80,15 @@ from sarc_governance.stores import (
     TraceStore,
 )
 
-__version__ = "0.1.0"
+try:
+    from importlib.metadata import (
+        version as _metadata_version,
+        PackageNotFoundError as _PackageNotFoundError,
+    )
+
+    __version__ = _metadata_version("sarc-governance")
+except _PackageNotFoundError:
+    __version__ = "0.2.0"
 
 __all__ = [
     # constraints
