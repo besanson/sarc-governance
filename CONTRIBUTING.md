@@ -12,9 +12,12 @@ pytest
 ## Running the full check locally
 
 ```bash
-pytest --tb=short -q      # 206 tests, should all pass
-ruff check src tests      # linting
-mypy src/sarc_governance --ignore-missing-imports  # type checking
+make quality          # lint + format-check + typecheck + test in one command
+# or individually:
+pytest --tb=short -q
+ruff check src tests examples benchmarks
+ruff format --check src tests examples benchmarks
+mypy src/sarc_governance --ignore-missing-imports
 ```
 
 ## What to work on
@@ -37,8 +40,7 @@ gaps that are explicitly out of scope for the core library.
 
 ## Code style
 
-`black` with `line-length = 99` and `target-version = py311`. Run `black src tests`
-before opening a PR.
+`ruff format` with `line-length = 99`. Run `make format` before opening a PR. Linting uses `ruff check`; type checking uses `mypy`. Both are gated in CI and pre-commit.
 
 ## Commit messages
 

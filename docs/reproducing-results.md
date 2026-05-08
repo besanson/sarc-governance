@@ -8,7 +8,7 @@ This document explains how to reproduce all benchmark outputs reported in the pa
 make reproduce
 ```
 
-This runs `python -m benchmarks.reproduce` with default parameters (50 seeds, 100 orders per seed) and writes all output files to `artifacts/benchmarks/`.
+This runs `python -m benchmarks.reproduce` with default parameters (50 seeds, 1000 orders per seed) and writes all output files to `artifacts/benchmarks/`.
 
 ## Generated files
 
@@ -48,13 +48,13 @@ This runs `pytest tests/test_benchmark_smoke.py` with `seeds=2` and `n_orders=10
 ## Running with custom parameters
 
 ```bash
-python -m benchmarks.reproduce --seeds 10 --n-orders 100 --output-dir /tmp/sarc_out
+python -m benchmarks.reproduce --seeds 10 --n-orders 1000 --output-dir /tmp/sarc_out
 ```
 
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--seeds N` | 50 | Number of random seeds to run per regime. |
-| `--n-orders N` | 100 | Number of orders generated per seed. |
+| `--n-orders N` | 1000 | Number of orders generated per seed (matches the paper). |
 | `--output-dir PATH` | `artifacts/benchmarks` | Directory for output files. Created if it does not exist. |
 
 Results produced with non-default seed counts will differ numerically from the paper but will have the same file structure and column schema.
@@ -65,9 +65,9 @@ A correctly generated `sarc_eval_summary.json` has the following top-level struc
 
 ```json
 {
-  "n_cases": 100,
+  "n_cases": 250,
   "n_runs": 50,
-  "seed": 42,
+  "seed": 50,
   "benchmark": {
     "<regime_name>": {
       "allow_count":      { "mean": 0.0, "ci95_low": 0.0, "ci95_high": 0.0 },

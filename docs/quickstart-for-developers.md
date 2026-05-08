@@ -12,7 +12,7 @@ pip install -e ".[dev]"
 ```
 
 The only required runtime dependency is `pyyaml`. Test/dev extras add
-`pytest`, `pytest-asyncio`, and `black`.
+`pytest`, `pytest-asyncio`, `ruff`, and `mypy`.
 
 ## Verify
 
@@ -22,7 +22,7 @@ sarc-governance --version
 sarc-governance demo procurement
 ```
 
-You should see 190 tests passing and the procurement demo printing
+You should see 217 tests passing and the procurement demo printing
 six scenarios followed by an audit summary.
 
 ## Wrap your first toolset

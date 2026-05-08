@@ -1,5 +1,12 @@
 # sarc-governance
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo/sarc-logo-dark.svg">
+    <img src="assets/logo/sarc-logo.svg" alt="SARC Governance" width="320">
+  </picture>
+</p>
+
 ![CI](https://github.com/besanson/sarc-governance/actions/workflows/ci.yml/badge.svg)
 ![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12-blue)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
