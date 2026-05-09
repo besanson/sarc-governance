@@ -36,8 +36,14 @@ jobs:
       - name: Type check (mypy)
         run: mypy src/sarc_governance --ignore-missing-imports
 
-  pais-integration:
-    name: PAIS integration (Python ${{ matrix.python-version }})
+  # ---------------------------------------------------------------------------
+  # PAIS adapter contract tests against the local PAIS-compatible stub.
+  # This job runs fast and deterministically without any external network calls.
+  # It verifies that the SARC adapter contract is correct; it does NOT prove
+  # compatibility with the real upstream KAOS/PAIS package.
+  # ---------------------------------------------------------------------------
+  pais-stub-integration:
+    name: PAIS adapter contract test — stub (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -51,11 +57,49 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install package and dev dependencies
+      - name: Install SARC and dev dependencies
         run: pip install -e ".[dev]"
 
-      - name: Install pais stub
+      - name: Install PAIS-compatible stub (stubs/pais_stub)
         run: pip install -e stubs/pais_stub/
 
-      - name: Run PAIS integration tests
+      - name: Run PAIS adapter contract tests against stub
         run: pytest tests/test_pais_integration.py -v --tb=short
+
+  # ---------------------------------------------------------------------------
+  # PAIS adapter integration tests against the real upstream KAOS/PAIS package.
+  # This job clones https://github.com/axsaucedo/kaos and installs the real
+  # pydantic-ai-server (pais) package from source, then runs the same tests
+  # with SARC_REQUIRE_REAL_PAIS=1, which fails (rather than skips) if the
+  # real upstream package is missing or API-incompatible.
+  #
+  # Python 3.12 only: pydantic-ai-server requires Python >= 3.12.
+  # ---------------------------------------------------------------------------
+  pais-upstream-integration:
+    name: PAIS adapter integration — upstream KAOS/PAIS (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install SARC and dev dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Clone upstream KAOS repository
+        run: git clone --depth 1 https://github.com/axsaucedo/kaos /tmp/kaos
+
+      - name: Install upstream PAIS package (pydantic-ai-server)
+        run: pip install -e /tmp/kaos/pydantic-ai-server
+
+      - name: Run upstream PAIS integration tests
+        run: SARC_REQUIRE_REAL_PAIS=1 pytest tests/test_pais_integration.py -q

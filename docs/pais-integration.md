@@ -73,9 +73,12 @@ Predicates and trace records receive the resolved `ExecutionContext` via `ctx["e
 
 ## Preventing silent trace drops
 
-PAIS memory silently drops `add_event` calls for sessions that have not been explicitly created via `create(session_id)`. Without a guard, governance trace records are lost without any error or warning.
+PAIS memory silently drops `add_event` calls for sessions that have not been
+explicitly created.  Without a guard, governance trace records are lost without
+any error or warning.
 
-`PAISMemoryGuard` fixes this by calling `create()` once per session before the first `add_event`:
+`PAISMemoryGuard` fixes this by calling `create()` once per session before the
+first `add_event`, whenever the wrapped memory object exposes that method:
 
 ```python
 from sarc_governance.adapters.pais import PAISMemoryGuard
@@ -84,14 +87,27 @@ guard = PAISMemoryGuard(ctx.deps.memory)
 # Use guard as the memory argument wherever you wire GovernanceToolset.
 ```
 
-`build_governed_toolset` enables `PAISMemoryGuard` by default (`guard_memory=True`). Set `guard_memory=False` only if your PAIS memory implementation creates sessions automatically.
+`build_governed_toolset` enables `PAISMemoryGuard` by default (`guard_memory=True`).
+Set `guard_memory=False` only if your PAIS memory implementation creates sessions
+automatically, or if you pre-create the session manually before the first governed call.
+
+> **Real upstream PAIS note:** The upstream `LocalMemory` uses an async
+> `create_session(app_name, user_id, session_id)` method rather than a synchronous
+> `create(session_id)`.  The guard does not call `create_session()`.  Pre-create
+> the session yourself before the first governed call when using the real PAIS package:
+> ```python
+> await memory.create_session("my-app", "user", session_id)
+> governed = build_governed_toolset(..., guard_memory=False)
+> ```
 
 ### How the guard works
 
-1. On the first `add_event(session_id, ...)` call for a given session, the guard calls `inner.create(session_id)`.
+1. On the first `add_event(session_id, ...)` call for a given session, the guard
+   looks for a `create` method on the wrapped object.  If found, it is called once.
 2. Subsequent calls for the same session skip `create()`.
-3. If `create()` raises (e.g. session already exists), the exception is swallowed and logged at DEBUG level.
-4. The guard never raises; it never drops events after `create()` has been called.
+3. If `create()` raises (e.g. session already exists), the exception is logged at
+   WARNING level by default.  Pass `strict=True` to re-raise immediately.
+4. The guard never silently drops events once the session is known.
 
 ## Predicate context shape
 
@@ -161,20 +177,47 @@ Each event content is a `TraceRecord.to_dict()` payload:
 
 For file-backed or tamper-evident audit trails, use `JSONLTraceStore` or `SQLiteTraceStore` in a `StoreBackedMemory` wrapper (see [`docs/trace-stores.md`](trace-stores.md)).
 
-## Running without pais installed
+## Testing the PAIS adapter
 
-No `pais` import is needed to run the demo or the unit tests:
+SARC tests the adapter in two distinct ways, each with different scope:
+
+### 1. PAIS-compatible contract test (stub)
+
+A fast, deterministic test that runs in normal CI without any external network
+access.  It installs a minimal PAIS-compatible stub from `stubs/pais_stub/` that
+mirrors the SARC adapter contract.  This verifies the adapter logic but does
+**not** prove compatibility with the real upstream KAOS package.
+
+```bash
+pip install -e stubs/pais_stub/
+pytest tests/test_pais_integration.py -v
+```
+
+CI job: **pais-stub-integration** (Python 3.11 and 3.12).
+
+### 2. Upstream KAOS/PAIS integration test
+
+A separate CI job clones [axsaucedo/kaos](https://github.com/axsaucedo/kaos) and
+installs the real `pydantic-ai-server` (the `pais` package) from source.  The
+tests then run with `SARC_REQUIRE_REAL_PAIS=1`, which **fails** (not skips) if
+the real upstream package is missing or if its API is incompatible.
+
+```bash
+git clone --depth 1 https://github.com/axsaucedo/kaos /tmp/kaos
+pip install -e /tmp/kaos/pydantic-ai-server   # requires Python >= 3.12
+SARC_REQUIRE_REAL_PAIS=1 pytest tests/test_pais_integration.py -q
+```
+
+CI job: **pais-upstream-integration** (Python 3.12).
+
+The upstream test asserts that `pais.__file__` does not point to the local stub,
+so it cannot accidentally pass against the contract stub even if both are installed.
+
+### No pais package required for unit tests or demos
 
 ```bash
 python examples/kaos_pais_adapter/run_demo.py   # stand-in PAIS types, no pais package
 python -m pytest tests/test_pais_adapter.py -v  # unit tests, no pais package
-```
-
-Integration tests against a real `DelegationToolset` require `pais` and are in `tests/test_pais_integration.py`:
-
-```bash
-pip install -e path/to/kaos/pais
-pytest tests/test_pais_integration.py -v
 ```
 
 ## Migrating from the example adapter

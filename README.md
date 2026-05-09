@@ -16,16 +16,16 @@ A runtime governance layer that wraps any async toolset and enforces declarative
 constraints (hard / soft / escalation) at three in-process points around every tool call.
 
 > **Status — read this first.** Developer toolkit + pre-production
-> foundations on top of the SARC architecture from *"SARC: A Runtime
-> Governance Architecture for Tool-Using Agentic AI Systems"*
+> foundations on top of the SARC architecture from *“SARC: A Runtime
+> Governance Architecture for Tool-Using Agentic AI Systems”*
 > ([`paper/`](paper/README.md)). Stable enough for prototypes,
 > evaluation, serious POCs, and as the runtime spine of a hardened
 > deployment. **It is not a turnkey production system.** The hash chain
 > is *tamper-evident, not tamper-proof*; `approval_status="approved"` is
-> a string that the deploying organisation's CI/CD must enforce; the
+> a string that the deploying organisation’s CI/CD must enforce; the
 > shipped trace stores are single-writer; the default escalation router
 > only logs. See [docs/mental-model.md](docs/mental-model.md) for the
-> full "is / is not" map and
+> full “is / is not” map and
 > [docs/production-hardening.md](docs/production-hardening.md) for what
 > remains your responsibility.
 
@@ -48,7 +48,7 @@ constraints (hard / soft / escalation) at three in-process points around every t
 - [Pre-production checklist](docs/pre-production-checklist.md) — what now ships vs. what you still wire up.
 - [Policy lifecycle](docs/policy-lifecycle.md) — `PolicyMetadata`, checksum, diff, CI gating.
 - [Trace stores](docs/trace-stores.md) — Memory / JSONL / SQLite backends and the hash chain.
-- [Security model](docs/security-model.md) — threat model, what is and isn't protected.
+- [Security model](docs/security-model.md) — threat model, what is and isn’t protected.
 - [Failure modes](docs/failure-modes.md) — what happens on memory / escalation / spec errors.
 - [Production hardening](docs/production-hardening.md) — persistence, observability, auth, perf, CI/CD.
 
@@ -85,10 +85,10 @@ What it does instead:
 
 - Defines two minimal `typing.Protocol` types — `ToolsetProtocol` (anything with an async
   `call_tool` method) and `MemoryProtocol` (anything with an async `add_event` method).
-- `GovernanceToolset` wraps **any** object that satisfies `ToolsetProtocol`. KAOS's
+- `GovernanceToolset` wraps **any** object that satisfies `ToolsetProtocol`. KAOS’s
   `DelegationToolset`, LangGraph tool nodes, OpenAI tool-calling dispatch, AWS Bedrock
   action-group Lambdas, MCP tool clients, and arbitrary in-house async toolsets each need
-  (at most) a small adapter that normalizes the framework's tool-call event into
+  (at most) a small adapter that normalizes the framework’s tool-call event into
   `(name, args)`.
 - Auto-detects `ctx.deps.memory` and `ctx.deps.session_id` for trace persistence
   when the orchestration layer exposes that shape, and falls back to user-supplied
@@ -102,9 +102,9 @@ governed boundary explicit: wrapping a `DelegationToolset` or MCP client governs
 call routed through the wrapper. Tools, sub-agents, or MCP servers called outside the
 wrapper are not governed, even if they run in the same process.
 
-The recipe is the same in every direction: normalize the framework's tool-call
+The recipe is the same in every direction: normalize the framework’s tool-call
 event → SARC `call_tool(name, args, ctx, tool)` → governed execution → serialize
-the result back into the framework's response shape. See
+the result back into the framework’s response shape. See
 [`docs/integrations.md`](docs/integrations.md) for worked examples and a
 side-by-side comparison.
 
@@ -112,6 +112,13 @@ side-by-side comparison.
 [`src/sarc_governance/adapters/pais.py`](src/sarc_governance/adapters/pais.py) for
 `PAISContextMapper`, `PAISMemoryGuard`, and `build_governed_toolset`, and
 [`docs/pais-integration.md`](docs/pais-integration.md) for the full integration guide.
+
+SARC includes a PAIS adapter tested in two ways: (1) a fast contract test against a
+local PAIS-compatible stub (`pais-stub-integration` CI job), and (2) an upstream
+integration job that clones [axsaucedo/kaos](https://github.com/axsaucedo/kaos) and
+installs the real `pydantic-ai-server` package (`pais-upstream-integration` CI job).
+The adapter governs **explicitly wrapped tool/action boundaries only** — it does not
+automatically govern every KAOS or MCP tool. Other toolsets must be wrapped separately.
 
 ---
 
@@ -310,12 +317,12 @@ cover and that fit naturally into the PAG/ATM/PAA structure:
 - **Data access** — block queries that select restricted columns (hard/PAG),
   log queries returning > N rows for review (soft/PAA), escalate cross-tenant access
   attempts (escalation/PAG).
-- **Customer refunds** — block refunds above an agent's authority (hard/PAG),
+- **Customer refunds** — block refunds above an agent’s authority (hard/PAG),
   escalate refunds for VIP accounts (escalation/PAG), track cumulative daily refund
   volume per agent (soft/PAA).
 - **Incident response / runbooks** — block destructive actions on production hosts
   outside a maintenance window (hard/PAG), escalate any action against a tagged
-  "critical" host (escalation/PAG), audit elapsed time on long-running remediations
+  “critical” host (escalation/PAG), audit elapsed time on long-running remediations
   (soft/ATM via the `elapsed` field).
 
 In each case the agent code is unchanged; only the `ConstraintSpec` differs.
@@ -389,7 +396,7 @@ See [docs/threat-model.md](docs/threat-model.md) for the full threat model.
   tamper-evident SHA-256 hash chain and `verify_chain` CLI.
 - Procurement demo, pre-production demo, paper benchmarks, and a test suite (>180 tests).
 
-**Still the deploying organisation's job**
+**Still the deploying organisation’s job**
 
 - Multi-writer durable storage at scale — the shipped stores are single-writer
   (file or single-file SQLite). Bring a real backend if you need multi-process
