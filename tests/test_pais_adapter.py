@@ -190,6 +190,37 @@ async def test_memory_guard_tolerates_create_raising() -> None:
     await guard.add_event("s1", "governance_event", {})
 
 
+@pytest.mark.asyncio
+async def test_memory_guard_create_raising_emits_warning(caplog: pytest.LogCaptureFixture) -> None:
+    class _CreateRaises:
+        async def add_event(self, sid: str, et: str, content: Any, metadata=None) -> bool:
+            return True
+
+        def create(self, sid: str) -> None:
+            raise RuntimeError("boom")
+
+    import logging
+
+    guard = PAISMemoryGuard(_CreateRaises())
+    with caplog.at_level(logging.WARNING, logger="sarc_governance.adapters.pais"):
+        await guard.add_event("s1", "governance_event", {})
+    assert any("boom" in r.message for r in caplog.records)
+
+
+@pytest.mark.asyncio
+async def test_memory_guard_strict_mode_raises() -> None:
+    class _CreateRaises:
+        async def add_event(self, sid: str, et: str, content: Any, metadata=None) -> bool:
+            return True
+
+        def create(self, sid: str) -> None:
+            raise RuntimeError("strict-fail")
+
+    guard = PAISMemoryGuard(_CreateRaises(), strict=True)
+    with pytest.raises(RuntimeError, match="strict-fail"):
+        await guard.add_event("s1", "governance_event", {})
+
+
 # ---------------------------------------------------------------------------
 # build_governed_toolset
 # ---------------------------------------------------------------------------

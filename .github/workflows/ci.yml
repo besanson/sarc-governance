@@ -35,3 +35,27 @@ jobs:
 
       - name: Type check (mypy)
         run: mypy src/sarc_governance --ignore-missing-imports
+
+  pais-integration:
+    name: PAIS integration (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install package and dev dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Install pais stub
+        run: pip install -e stubs/pais_stub/
+
+      - name: Run PAIS integration tests
+        run: pytest tests/test_pais_integration.py -v --tb=short

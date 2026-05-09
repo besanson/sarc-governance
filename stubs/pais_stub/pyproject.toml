@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=42"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pais-stub"
+version = "0.0.1"
+description = "Minimal pais stub for SARC integration testing"
+requires-python = ">=3.11"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["pais*"]

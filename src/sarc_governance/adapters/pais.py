@@ -40,7 +40,7 @@ from typing import Any, Callable, Dict, Optional, Tuple
 
 from sarc_governance.constraints import ConstraintSpec
 from sarc_governance.context import ExecutionContext
-from sarc_governance.escalation import EscalationRouter
+from sarc_governance.escalation import EscalationHandler, EscalationRouter
 from sarc_governance.governance import GovernanceToolset
 
 _log = logging.getLogger(__name__)
@@ -110,17 +110,31 @@ class PAISMemoryGuard:
     governance trace drops.
 
     The guard is transparent: it delegates every ``add_event`` call to the
-    wrapped object unchanged, and never raises on ``create()`` failures (the
-    session may already exist).
+    wrapped object unchanged.
+
+    Parameters
+    ----------
+    inner:
+        The wrapped PAIS memory object.
+    strict:
+        When ``True``, any exception raised by ``inner.create()`` is
+        re-raised immediately rather than being swallowed.  Use this to
+        surface session initialisation failures early in deployments where
+        ``create()`` should never fail (e.g. the session is pre-created by
+        the caller).  Default is ``False`` (log at WARNING and continue).
 
     Usage::
 
         guard = PAISMemoryGuard(ctx.deps.memory)
         await guard.add_event(session_id, "governance_event", record.to_dict())
+
+        # Fail fast if session creation fails:
+        guard = PAISMemoryGuard(ctx.deps.memory, strict=True)
     """
 
-    def __init__(self, inner: Any) -> None:
+    def __init__(self, inner: Any, *, strict: bool = False) -> None:
         self._inner = inner
+        self._strict = strict
         self._known: set[str] = set()
 
     async def add_event(
@@ -138,8 +152,12 @@ class PAISMemoryGuard:
                     if hasattr(result, "__await__"):
                         await result
                 except Exception as exc:
-                    _log.debug(
-                        "PAISMemoryGuard.create(%r) raised (session may already exist): %s",
+                    if self._strict:
+                        raise
+                    _log.warning(
+                        "PAISMemoryGuard: create(%r) raised — governance traces for this "
+                        "session may be silently dropped by the underlying memory. "
+                        "Pass strict=True to surface this as an error. Cause: %s",
                         session_id,
                         exc,
                     )
@@ -158,7 +176,7 @@ def build_governed_toolset(
     environment: str = "production",
     principal_id: str = "",
     guard_memory: bool = True,
-    escalation_handler: Optional[Callable] = None,
+    escalation_handler: Optional[EscalationHandler] = None,
 ) -> GovernanceToolset:
     """Wrap a KAOS PAIS ``DelegationToolset`` with SARC runtime governance.
 
