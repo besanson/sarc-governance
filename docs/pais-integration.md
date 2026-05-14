@@ -1,41 +1,54 @@
 # PAIS Integration Guide
 
-This page covers integrating SARC runtime governance into a [KAOS](https://github.com/axsaucedo/kaos) PAIS deployment. PAIS uses `DelegationToolset` to route tool calls across sub-agents; SARC wraps that boundary to enforce constraints before, during, and after every routed call.
+This page covers integrating SARC runtime governance into a [KAOS](https://github.com/axsaucedo/kaos) PAIS deployment. PAIS uses pydantic-ai toolsets (`DelegationToolset`, `MCPServerStreamableHTTP`) to route tool calls; SARC wraps that boundary to enforce constraints before, during, and after every call.
 
-## Scope of governance
+## Canonical production integration
 
-**SARC governs only tool boundaries that are explicitly wrapped by a `GovernanceToolset`.**
+**Use `create_governed_agent_server` as a drop-in replacement for KAOS's `create_agent_server`.**
 
-Wrapping a `DelegationToolset` governs every call that routes through it. Sub-agents, MCP tools, or PAIS tools that are invoked outside that wrapper are not governed by SARC — they run without constraint evaluation or trace emission. The adapter pattern makes the governed boundary explicit and auditable.
+```python
+from sarc_governance.adapters.pais import create_governed_agent_server
+from sarc_governance import load_spec
 
-## Installation
+spec   = load_spec("/config/sarc_spec.yaml")
+server = create_governed_agent_server(
+    spec,
+    agent_name=settings.agent_name,
+    tenant_id=settings.tenant_id,
+)
+app = server.app  # FastAPI application — deploy as-is
+```
+
+`create_governed_agent_server` forwards all keyword arguments verbatim to KAOS's `create_agent_server`, then replaces every toolset in `server._agent._toolsets` with a `SARCGovernanceToolset` wrapper.  **No KAOS source modification is required.**  The returned `AgentServer` is identical to the one KAOS normally produces, except that every tool call — sub-agent delegation (`DelegationToolset`) and MCP tool calls (`MCPServerStreamableHTTP`) — passes through SARC's PAG/ATM/PAA enforcement loop.
+
+### Why this approach
+
+The KAOS `create_agent_server` function builds a pydantic-ai `Agent` and appends all registered toolsets to `agent._toolsets` internally.  SARC intercepts *after* construction by replacing each toolset with a `SARCGovernanceToolset` wrapper before the FastAPI app handles any requests.  This ensures:
+
+- **All toolsets are governed** — both `DelegationToolset` (sub-agent routing) and `MCPServerStreamableHTTP` (direct MCP calls).  The legacy `build_governed_toolset` pattern only covered explicitly-wrapped toolsets.
+- **No KAOS internals modified** — `create_agent_server` runs unchanged; SARC patches the result, not the source.
+- **Drop-in compatible** — the same `AgentServer` type is returned, so deployment scripts, health probes, and A2A discovery routes work identically.
+
+### Installation
 
 `sarc-governance` has no dependency on `pais` or `kaos`. Install them separately:
 
 ```bash
 pip install sarc-governance
-pip install -e path/to/kaos/pais   # from source or your internal registry
+pip install -e path/to/kaos/pydantic-ai-server   # from source or your internal registry
 ```
 
-## Quickstart
+## SARCGovernanceToolset
 
-```python
-from pais.tools import DelegationToolset
-from sarc_governance.adapters.pais import build_governed_toolset
-from sarc_governance import load_spec
+`create_governed_agent_server` wraps each toolset with a `SARCGovernanceToolset` instance.  It implements the pydantic-ai `AbstractToolset` duck-typed interface:
 
-spec = load_spec("/config/sarc_spec.yaml")
+| Method | Behaviour |
+|---|---|
+| `id` | Returns the wrapped toolset's `id`. |
+| `get_tools(ctx)` | Delegated to the wrapped toolset — pydantic-ai uses this to build the LLM tool schema. |
+| `call_tool(name, tool_args, ctx, tool)` | Enforces PAG/ATM/PAA, then delegates to the wrapped toolset. |
 
-governed = build_governed_toolset(
-    delegation_toolset=DelegationToolset(sub_agents, memory, session_id),
-    agent_name=settings.agent_name,
-    tenant_id=settings.tenant_id,
-    spec=spec,
-)
-# Use `governed` wherever PAIS previously used `DelegationToolset`.
-```
-
-`build_governed_toolset` returns a `GovernanceToolset` that is a drop-in replacement for `DelegationToolset` — same `call_tool` signature, same ctx passthrough.
+The pydantic-ai agent runtime calls these methods identically to any other toolset — SARC enforcement is transparent.
 
 ## Governance context mapping
 
@@ -59,6 +72,8 @@ governed = GovernanceToolset(
 )
 ```
 
+`create_governed_agent_server` configures `PAISContextMapper` automatically using its `agent_name`, `tenant_id`, `roles`, `environment`, and `principal_id` parameters.
+
 ### Fallback behaviour
 
 | Field | Supplied at construction | Not supplied |
@@ -78,7 +93,8 @@ explicitly created.  Without a guard, governance trace records are lost without
 any error or warning.
 
 `PAISMemoryGuard` fixes this by calling `create()` once per session before the
-first `add_event`, whenever the wrapped memory object exposes that method:
+first `add_event`, whenever the wrapped memory object exposes that method.
+`create_governed_agent_server` enables this guard by default (`guard_memory=True`).
 
 ```python
 from sarc_governance.adapters.pais import PAISMemoryGuard
@@ -87,7 +103,6 @@ guard = PAISMemoryGuard(ctx.deps.memory)
 # Use guard as the memory argument wherever you wire GovernanceToolset.
 ```
 
-`build_governed_toolset` enables `PAISMemoryGuard` by default (`guard_memory=True`).
 Set `guard_memory=False` only if your PAIS memory implementation creates sessions
 automatically, or if you pre-create the session manually before the first governed call.
 
@@ -97,17 +112,14 @@ automatically, or if you pre-create the session manually before the first govern
 > the session yourself before the first governed call when using the real PAIS package:
 > ```python
 > await memory.create_session("my-app", "user", session_id)
-> governed = build_governed_toolset(..., guard_memory=False)
+> server = create_governed_agent_server(spec, guard_memory=False, ...)
 > ```
 
-### How the guard works
+## Scope of governance
 
-1. On the first `add_event(session_id, ...)` call for a given session, the guard
-   looks for a `create` method on the wrapped object.  If found, it is called once.
-2. Subsequent calls for the same session skip `create()`.
-3. If `create()` raises (e.g. session already exists), the exception is logged at
-   WARNING level by default.  Pass `strict=True` to re-raise immediately.
-4. The guard never silently drops events once the session is known.
+**SARC governs only tool boundaries that are explicitly wrapped by a `SARCGovernanceToolset`.**
+
+`create_governed_agent_server` wraps every toolset that `create_agent_server` registers.  Sub-agents, MCP tools, or PAIS tools that are invoked outside that wrapper (for example, toolsets added directly by a `custom_agent` after server construction) are not governed.
 
 ## Predicate context shape
 
@@ -116,7 +128,7 @@ Predicates receive a dict at each enforcement point:
 **PAG (Pre-Action Gate):**
 ```python
 {
-    "tool": "sub_agent_name",
+    "tool": "delegate_to_finance_agent",
     "args": {"task": "...", ...},
     "execution_context": {          # present when context_getter is wired
         "agent_id": "my-agent",
@@ -158,7 +170,7 @@ Each event content is a `TraceRecord.to_dict()` payload:
 ```json
 {
   "action_id": "act-1",
-  "tool": "create_po",
+  "tool": "delegate_to_finance_agent",
   "point": "PAG",
   "constraint_id": "block_high_value",
   "klass": "hard",
@@ -213,31 +225,46 @@ CI job: **pais-upstream-integration** (Python 3.12).
 The upstream test asserts that `pais.__file__` does not point to the local stub,
 so it cannot accidentally pass against the contract stub even if both are installed.
 
-### No pais package required for unit tests or demos
+### Unit tests (no pais package required)
 
 ```bash
 python examples/kaos_pais_adapter/run_demo.py   # stand-in PAIS types, no pais package
 python -m pytest tests/test_pais_adapter.py -v  # unit tests, no pais package
 ```
 
-## Migrating from the example adapter
+## Legacy: `build_governed_toolset`
 
-If you used `examples/kaos_pais_adapter/adapter.py` in a previous deployment, the function signature is identical — the example now delegates to `sarc_governance.adapters.pais.build_governed_toolset`:
+The earlier `build_governed_toolset` function wraps a single toolset directly:
 
 ```python
-# Before
-from examples.kaos_pais_adapter.adapter import build_governed_toolset
-
-# After (preferred — uses the library version directly)
 from sarc_governance.adapters.pais import build_governed_toolset
+
+governed = build_governed_toolset(
+    delegation_toolset=DelegationToolset(sub_agents, memory, session_id),
+    agent_name=settings.agent_name,
+    tenant_id=settings.tenant_id,
+    spec=spec,
+)
 ```
 
-No other changes required.
+This is still supported for backwards compatibility, but it only governs the single explicitly-wrapped toolset.  For new deployments, use `create_governed_agent_server` to govern all toolsets automatically.
+
+## Migrating from the example adapter
+
+If you used `examples/kaos_pais_adapter/adapter.py` in a previous deployment, the function signature is unchanged for `build_governed_toolset`:
+
+```python
+# Before (still works)
+from examples.kaos_pais_adapter.adapter import build_governed_toolset
+
+# After (preferred — canonical production approach)
+from sarc_governance.adapters.pais import create_governed_agent_server
+```
 
 ## What SARC does not govern
 
 - Sub-agent internals: what the sub-agent does after receiving a delegated task.
-- Tools called directly by sub-agents without routing through `GovernanceToolset`.
+- Tools called directly by sub-agents without routing through `SARCGovernanceToolset`.
 - PAIS-level authentication, authorization, or IAM policies.
 - Model outputs or prompts upstream of tool dispatch.
 

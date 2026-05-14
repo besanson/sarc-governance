@@ -1,9 +1,18 @@
 # KAOS PAIS x SARC Governance adapter
 
-This example shows how to wrap a KAOS `DelegationToolset` with SARC runtime
-governance in four lines of code.  The adapter file (`adapter.py`) is ready to
-drop into any KAOS deployment; `run_demo.py` exercises it end-to-end without
-requiring a running KAOS cluster.
+This example shows two ways to integrate SARC runtime governance into a KAOS
+deployment:
+
+1. **`create_governed_agent_server` (canonical production approach)** — wraps
+   the entire KAOS `AgentServer`, governing every registered toolset
+   (`DelegationToolset` and `MCPServerStreamableHTTP`) automatically.
+   No KAOS source modification required.
+
+2. **`build_governed_toolset` (legacy single-toolset approach)** — wraps a
+   single `DelegationToolset` explicitly.  Kept for backwards compatibility.
+
+`run_demo.py` exercises the adapter end-to-end without requiring a running KAOS
+cluster.
 
 ---
 
@@ -26,22 +35,43 @@ Key PAIS types this adapter touches:
 
 ## How SARC maps governance requirements into runtime checks
 
-SARC's `GovernanceToolset` wraps any object that satisfies `ToolsetProtocol`
-(anything with `async def call_tool(name, args, ctx, tool)`).  Because
-`DelegationToolset` already has that signature, no subclassing or monkeypatching
-is needed.
+### Canonical: `create_governed_agent_server`
 
-The adapter's `build_governed_toolset` function:
+```python
+from sarc_governance.adapters.pais import create_governed_agent_server
+from sarc_governance import load_spec
 
-1. Accepts a `DelegationToolset` instance (or any compatible toolset).
-2. Loads a `ConstraintSpec` — either pre-built in Python or from a YAML
-   ConfigMap mounted at `/config/sarc_spec.yaml`.
-3. Attaches a `context_getter` that reads `ctx.deps` to build a typed
-   `ExecutionContext` (agent name, tenant, session, roles).
-4. Returns a `GovernanceToolset` that is a drop-in replacement for the original
-   toolset.
+spec   = load_spec("/config/sarc_spec.yaml")
+server = create_governed_agent_server(
+    spec,
+    agent_name=settings.agent_name,
+    tenant_id=settings.tenant_id,
+)
+app = server.app  # FastAPI application
+```
 
-Every call to `governed.call_tool(...)` now runs through three enforcement
+This calls KAOS's `create_agent_server(**kwargs)` normally, then wraps every
+toolset in `server._agent._toolsets` with a `SARCGovernanceToolset`.  Both
+`DelegationToolset` (sub-agent delegation) and `MCPServerStreamableHTTP` (MCP
+tool calls) are governed.
+
+### Legacy: `build_governed_toolset`
+
+```python
+from sarc_governance.adapters.pais import build_governed_toolset
+
+governed = build_governed_toolset(
+    delegation_toolset=DelegationToolset(...),
+    agent_name=settings.agent_name,
+    spec=spec,
+)
+```
+
+Wraps a single toolset.  Use `create_governed_agent_server` for new deployments.
+
+---
+
+Every tool call routed through the wrapper runs through three enforcement
 points automatically:
 
 - **PAG (Pre-Action Gate)** — evaluated *before* the inner toolset is called.
@@ -145,7 +175,7 @@ the agent's flow.
 
 | File | Purpose |
 |---|---|
-| `adapter.py` | Importable adapter: `build_governed_toolset(delegation_toolset, agent_name, spec=..., ...)`. Copy this into your KAOS deployment. |
+| `adapter.py` | Re-exports `build_governed_toolset` from the library for backwards compatibility. New deployments should import from `sarc_governance.adapters.pais` directly. |
 | `run_demo.py` | Runnable demo with stand-in PAIS types.  Exercises all six scenarios. No real KAOS cluster required. |
 
 ---
