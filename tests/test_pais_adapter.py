@@ -13,6 +13,7 @@ from sarc_governance import Constraint, ConstraintSpec, ConstraintViolation, Gov
 from sarc_governance.adapters.pais import (
     PAISContextMapper,
     PAISMemoryGuard,
+    SARCGovernanceToolset,
     build_governed_toolset,
 )
 from sarc_governance.context import ExecutionContext
@@ -374,3 +375,114 @@ async def test_context_stamped_on_trace() -> None:
     assert ec is not None
     assert ec.agent_id == "my-agent"
     assert ec.tenant_id == "acme"
+
+
+# ---------------------------------------------------------------------------
+# SARCGovernanceToolset
+# ---------------------------------------------------------------------------
+
+
+class _StubGetToolsToolset:
+    """Stand-in that tracks get_tools calls."""
+
+    def __init__(self) -> None:
+        self.get_tools_called = 0
+
+    @property
+    def id(self) -> str:
+        return "stub-ts"
+
+    async def get_tools(self, ctx: Any) -> dict:
+        self.get_tools_called += 1
+        return {"my_tool": "definition"}
+
+    async def call_tool(self, name: str, tool_args: Dict[str, Any], ctx: Any, tool: Any) -> str:
+        return f"inner:{name}"
+
+
+@pytest.mark.asyncio
+async def test_sarc_governance_toolset_delegates_get_tools() -> None:
+    """SARCGovernanceToolset.get_tools delegates to the wrapped toolset."""
+    inner = _StubGetToolsToolset()
+    spec = ConstraintSpec()
+    governance = GovernanceToolset(wrapped=inner, spec=spec)
+    sgt = SARCGovernanceToolset(wrapped=inner, governance=governance)
+
+    result = await sgt.get_tools(ctx=None)
+    assert result == {"my_tool": "definition"}
+    assert inner.get_tools_called == 1
+
+
+@pytest.mark.asyncio
+async def test_sarc_governance_toolset_id_mirrors_wrapped() -> None:
+    """SARCGovernanceToolset.id returns the wrapped toolset's id."""
+    inner = _StubGetToolsToolset()
+    spec = ConstraintSpec()
+    governance = GovernanceToolset(wrapped=inner, spec=spec)
+    sgt = SARCGovernanceToolset(wrapped=inner, governance=governance)
+    assert sgt.id == "stub-ts"
+
+
+@pytest.mark.asyncio
+async def test_sarc_governance_toolset_allows_call() -> None:
+    """call_tool with no constraints passes through to the inner toolset."""
+    inner = _StubGetToolsToolset()
+    spec = ConstraintSpec()
+    governance = GovernanceToolset(wrapped=inner, spec=spec)
+    sgt = SARCGovernanceToolset(wrapped=inner, governance=governance)
+
+    result = await sgt.call_tool("my_tool", {}, ctx=None, tool=None)
+    assert result == "inner:my_tool"
+
+
+@pytest.mark.asyncio
+async def test_sarc_governance_toolset_blocks_hard_constraint() -> None:
+    """A firing hard constraint at PAG raises ConstraintViolation."""
+    inner = _StubGetToolsToolset()
+    spec = ConstraintSpec(
+        constraints=[
+            Constraint(
+                id="block_all",
+                klass="hard",
+                verif="PAG",
+                response="block_or_escalate",
+                predicate=lambda _: True,
+            )
+        ]
+    )
+    governance = GovernanceToolset(wrapped=inner, spec=spec)
+    sgt = SARCGovernanceToolset(wrapped=inner, governance=governance)
+
+    with pytest.raises(ConstraintViolation) as exc_info:
+        await sgt.call_tool("my_tool", {}, ctx=None, tool=None)
+    assert exc_info.value.constraint_id == "block_all"
+
+
+# ---------------------------------------------------------------------------
+# create_governed_agent_server
+# ---------------------------------------------------------------------------
+
+
+def test_create_governed_agent_server_raises_without_pais(monkeypatch: Any) -> None:
+    """create_governed_agent_server raises ImportError when pais is not available."""
+    import sys
+
+    # Remove pais.server from sys.modules so the lazy import inside the function fails.
+    monkeypatch.setitem(sys.modules, "pais.server", None)  # type: ignore[arg-type]
+
+    from sarc_governance.adapters.pais import create_governed_agent_server
+
+    spec = ConstraintSpec()
+    with pytest.raises((ImportError, ModuleNotFoundError)):
+        create_governed_agent_server(spec)
+
+
+def test_create_governed_agent_server_rejects_bad_spec_args() -> None:
+    """create_governed_agent_server raises ValueError if spec and spec_path both given."""
+    from sarc_governance.adapters.pais import create_governed_agent_server
+
+    with pytest.raises(ValueError, match="exactly one"):
+        create_governed_agent_server(spec=ConstraintSpec(), spec_path="/some/path.yaml")
+
+    with pytest.raises(ValueError, match="exactly one"):
+        create_governed_agent_server()
