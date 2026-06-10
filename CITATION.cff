@@ -24,6 +24,6 @@ preferred-citation:
   year: 2026
   url: "https://arxiv.org/abs/2605.07728"
   identifiers:
-    - type: url
-      value: "https://arxiv.org/abs/2605.07728"
+    - type: other
+      value: "arXiv:2605.07728"
       description: "arXiv preprint"
