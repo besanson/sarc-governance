@@ -4,6 +4,31 @@ All notable changes to `sarc-governance` are documented here.
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-06-10
+
+### Added
+- **`SARCGovernanceToolset`** — pydantic-ai `AbstractToolset`-compatible wrapper that
+  exposes `id`, `get_tools(ctx)`, and `call_tool(name, tool_args, ctx, tool)`, making
+  SARC enforcement transparent to the pydantic-ai agent runtime.
+- **`create_governed_agent_server`** — canonical KAOS/PAIS production integration.
+  Calls KAOS's `create_agent_server(**kwargs)` unmodified, then patches every toolset in
+  `server._agent._toolsets` with a `SARCGovernanceToolset` wrapper. Both
+  `DelegationToolset` and `MCPServerStreamableHTTP` are governed automatically, with no
+  KAOS source modification required.
+- **`CITATION.cff`** — standard citation metadata file; references arXiv:2605.07728.
+- **arXiv badge** — added to README header linking to the SARC paper preprint.
+- **Docs restructure** — README trimmed to <250 lines; reference content moved to
+  `docs/cli.md`, `docs/positioning.md`, `docs/use-cases.md`, and `docs/repo-layout.md`.
+- **Paper title normalised** — all references updated to the canonical title
+  *"SARC: A Governance-by-Architecture Framework for Agentic AI Systems"*.
+- **PyPI trusted-publishing workflow** — `.github/workflows/publish.yml` uses GitHub
+  OIDC; no long-lived PyPI tokens stored in the repository.
+
+### Changed
+- `docs/pais-integration.md` rewritten — `create_governed_agent_server` is now the
+  canonical production pattern; `build_governed_toolset` demoted to legacy section.
+- `examples/kaos_pais_adapter/README.md` updated to reflect both integration paths.
+
 ## [0.2.0] — 2026-05-07
 
 ### Added
