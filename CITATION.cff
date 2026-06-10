@@ -1,0 +1,29 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata below."
+type: software
+title: "sarc-governance"
+abstract: >
+  SARC Governance — a runtime governance layer that wraps any async toolset and
+  enforces declarative constraints (hard / soft / escalation) at three in-process
+  enforcement points (PAG / ATM / PAA) around every tool call.
+authors:
+  - family-names: Besanson
+    given-names: Gaston
+    affiliation: "Universidad Torcuato Di Tella"
+repository-code: "https://github.com/besanson/sarc-governance"
+license: MIT
+version: "0.3.0"
+date-released: "2026-06-10"
+preferred-citation:
+  type: article
+  title: "SARC: A Governance-by-Architecture Framework for Agentic AI Systems"
+  authors:
+    - family-names: Besanson
+      given-names: Gaston
+      affiliation: "Universidad Torcuato Di Tella"
+  year: 2026
+  url: "https://arxiv.org/abs/2605.07728"
+  identifiers:
+    - type: url
+      value: "https://arxiv.org/abs/2605.07728"
+      description: "arXiv preprint"
