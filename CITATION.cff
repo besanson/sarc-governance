@@ -24,6 +24,9 @@ preferred-citation:
   year: 2026
   url: "https://arxiv.org/abs/2605.07728"
   identifiers:
+    - type: doi
+      value: "10.5281/zenodo.20642182"
+      description: "Zenodo software archive"
     - type: other
       value: "arXiv:2605.07728"
       description: "arXiv preprint"

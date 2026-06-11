@@ -12,6 +12,7 @@
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
 [![Checked with mypy](https://img.shields.io/badge/mypy-checked-blue)](http://mypy-lang.org/)
 [![arXiv](https://img.shields.io/badge/arXiv-2605.07728-b31b1b.svg)](https://arxiv.org/abs/2605.07728)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20642182.svg)](https://doi.org/10.5281/zenodo.20642182)
 
 A runtime governance layer that wraps any async toolset and enforces declarative
 constraints (hard / soft / escalation) at three in-process points around every tool call.
