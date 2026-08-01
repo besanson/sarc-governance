@@ -9,7 +9,7 @@
 
 ![CI](https://github.com/besanson/sarc-governance/actions/workflows/ci.yml/badge.svg)
 ![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12-blue)
-![License: MIT](https://img.shields.io/badge/license-MIT-green)
+![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-green)
 [![Checked with mypy](https://img.shields.io/badge/mypy-checked-blue)](http://mypy-lang.org/)
 [![arXiv](https://img.shields.io/badge/arXiv-2605.07728-b31b1b.svg)](https://arxiv.org/abs/2605.07728)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20642182.svg)](https://doi.org/10.5281/zenodo.20642182)
@@ -200,4 +200,4 @@ described there maps 1:1 onto the modules in `src/sarc_governance/`. Cite with
 
 ## License
 
-MIT — see [`LICENSE`](LICENSE).
+Apache License 2.0 — see [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE).
