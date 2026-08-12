@@ -18,3 +18,8 @@ htmlcov/
 examples/preproduction_trace_store/trace.sqlite
 examples/preproduction_trace_store/trace.jsonl
 artifacts/
+
+# SARC Suite demo: external dependency clones (not part of this repo)
+dqSarc/
+Greensarc/
+sarc-governance-lib/
