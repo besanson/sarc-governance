@@ -1,0 +1,23 @@
+{
+  "decisions": 10800,
+  "admitted": 10152,
+  "held": 648,
+  "veto_by_gate": {
+    "dq": 10252,
+    "sarc": 548,
+    "green": 0
+  },
+  "winner_gates": {
+    "dq": 10252,
+    "sarc": 548
+  },
+  "defects_by_class": {
+    "cross_source_contradiction": 29,
+    "superseded_golden_record": 30,
+    "missing_mandatory_field": 32,
+    "lineage_missing": 28,
+    "plausible_outlier": 36,
+    "schema_drift": 40,
+    "stale_master_data": 33
+  }
+}

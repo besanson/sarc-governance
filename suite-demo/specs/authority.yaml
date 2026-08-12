@@ -1,0 +1,21 @@
+# SARC Governance Specification for Retail Replenishment Demo
+# Apache License 2.0
+
+constraints:
+  - id: role_authorised
+    description: "Acting role must be in allowlist"
+    predicates:
+      - name: allowed_role
+        args:
+          role: ${role}
+          allowed_roles: ${allowed_roles}
+    response: block
+
+  - id: order_value_cap
+    description: "Order value must not exceed per-day cap"
+    predicates:
+      - name: value_within_cap
+        args:
+          value: ${order_value}
+          cap: ${order_value_cap}
+    response: escalate

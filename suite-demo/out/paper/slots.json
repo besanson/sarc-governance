@@ -1,0 +1,13 @@
+{
+  "table1": "| Scenario | Decisions | Admitted | Held | DQ Vetoes | SARC Vetoes | Green Vetoes |\n|----------|-----------|----------|------|-----------|-------------|-------------|\n| S1 | 10800 | 10184 | 616 | 10270 | 530 | 0 |\n| S2 | 10800 | 10152 | 648 | 10252 | 548 | 0 |\n| S3 | 10800 | 10165 | 635 | 10253 | 547 | 0 |\n| S4 | 10800 | 10184 | 616 | 10257 | 543 | 0 |",
+  "table2": "| Defect Class | DQ | SARC | Green | Union |\n|---|---|---|---|---|\n| cross_source_contradiction | 116 | 7 | 0 | 2 |\n| lineage_missing | 101 | 7 | 0 | 2 |\n| missing_mandatory_field | 105 | 0 | 0 | 1 |\n| plausible_outlier | 116 | 4 | 0 | 2 |\n| schema_drift | 126 | 0 | 0 | 1 |\n| stale_master_data | 119 | 9 | 0 | 2 |\n| superseded_golden_record | 109 | 4 | 0 | 2 |",
+  "table3": "| Decision | Two-Phase | Single-Pass | V_pre | V_post | Cap Kappa |\n|----------|-----------|-------------|-------|--------|-----------|\n| 0 | BLOCK | ADMIT | 0.00 | 0.00 | 0.00 |\n| 3 | ADMIT | BLOCK | 0.00 | 0.00 | 0.00 |\n| 14 | BLOCK | ADMIT | 0.00 | 0.00 | 0.00 |\n| 17 | ADMIT | BLOCK | 0.00 | 0.00 | 0.00 |\n| 24 | BLOCK | ADMIT | 0.00 | 0.00 | 0.00 |\n| 27 | ADMIT | BLOCK | 0.00 | 0.00 | 0.00 |\n| 28 | ADMIT | BLOCK | 0.00 | 0.00 | 0.00 |\n| 34 | BLOCK | ADMIT | 0.00 | 0.00 | 0.00 |\n| 40 | ADMIT | BLOCK | 0.00 | 0.00 | 0.00 |\n| 88 | BLOCK | ADMIT | 0.00 | 0.00 | 0.00 |",
+  "table4": "| Scenario | Executed | Held | Loss (vs Clean) |\n|----------|----------|------|------------------|\n| S1 | 10184 | 616 | 0.0% |\n| S2 | 10152 | 648 | 0.0% |\n| S3 | 10165 | 635 | 0.0% |\n| S4 | 10184 | 616 | 0.0% |",
+  "metrics.ch1_violations": "0",
+  "metrics.ch2_divergent_decisions": "1212",
+  "metrics.ch2_direction_counts": "{\"single_pass_admits_then_violates\": 0, \"single_pass_holds_remediated_compliant\": 0}",
+  "metrics.ch3_false_hold": "0",
+  "metrics.ch4_matrix": "{}",
+  "abstract_results_sentence": "Hypothesis CH1 (veto soundness) supported: zero audit violations; CH2 (single-pass unsoundness) supported: divergences observed in S4; CH3 (deterministic selectivity) supported: zero false holds on compliant decisions; CH4 (coverage honesty) supported: composed coverage equals union of member coverages, with plausible_outlier declared uncovered.",
+  "appendixB_manifest": "{\n  \"seed\": 26313,\n  \"engine_versions\": {\n    \"sarc_dq\": \"0.1.0\",\n    \"sarc_governance\": \"0.3.0\",\n    \"green_sarc\": \"0.4.1\"\n  },\n  \"data_sha256\": \"4f637bc36ba5cffb56c31cd2b8273a135f89cc65448b28929ee71e73ded8f1d9\",\n  \"license\": \"Apache-2.0\"\n}"
+}
